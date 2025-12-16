@@ -1,0 +1,125 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: logx-engine-storage
+
+  # Elasticsearch 配置
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: UHTmljcPmCXBpyuWW9nv
+    connection-timeout: 5000
+    socket-timeout: 60000
+
+  # MySQL 配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/logx?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: root123
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# MinIO 配置
+minio:
+  endpoint: http://localhost:9000
+  access-key: admin
+  secret-key: admin123
+  bucket-name: logx-archive
+  region: us-east-1
+
+# 日志存储配置
+logx:
+  storage:
+    # 索引配置
+    index:
+      prefix: logx-logs              # 索引前缀
+      shards: 5                      # 分片数
+      replicas: 1                    # 副本数
+      refresh-interval: 5s           # 刷新间隔
+
+    # 数据生命周期配置
+    lifecycle:
+      hot-data-days: 7               # 热数据保留天数（Elasticsearch）
+      warm-data-days: 30             # 温数据保留天数（Elasticsearch 只读）
+      cold-data-days: 90             # 冷数据保留天数（MinIO 归档）
+      cleanup-enabled: true          # 是否启用自动清理
+      cleanup-cron: "0 0 2 * * ?"    # 清理任务执行时间（每天凌晨2点）
+      archive-enabled: true          # 是否启用归档
+      archive-cron: "0 0 3 * * ?"    # 归档任务执行时间（每天凌晨3点）
+
+    # 压缩配置
+    compression:
+      enabled: true                  # 是否启用压缩
+      algorithm: gzip                # 压缩算法：gzip/lz4/snappy
+      level: 6                       # 压缩级别（1-9）
+
+    # 批量操作配置
+    bulk:
+      size: 1000                     # 批量大小
+      flush-interval: 10s            # 刷新间隔
+      concurrent-requests: 2         # 并发请求数
+
+# Actuator 监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# 日志配置
+logging:
+  level:
+    com.domidodo.logx: INFO
+    org.springframework.data.elasticsearch: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    name: logs/logx-engine-storage.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30

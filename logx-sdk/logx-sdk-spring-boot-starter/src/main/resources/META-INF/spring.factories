@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.domidodo.logx.sdk.spring.autoconfigure.LogXAutoConfiguration

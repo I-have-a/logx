@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package logx;
+
+option java_package = "com.domidodo.logx.common.grpc";
+option java_outer_classname = "LogServiceProto";
+option java_multiple_files = true;
+
+/**
+ * 日志服务
+ * 提供日志接收和上报功能
+ */
+service LogService {
+  // 批量发送日志（推荐使用）
+  rpc SendLogs(LogBatchRequest) returns (LogBatchResponse);
+
+  // 流式发送日志（客户端流）
+  rpc StreamLogs(stream LogEntry) returns (LogBatchResponse);
+}
+
+/**
+ * 批量日志请求
+ */
+message LogBatchRequest {
+  string tenant_id = 1;           // 租户ID
+  string system_id = 2;           // 系统ID
+  string api_key = 3;             // API密钥
+  repeated LogEntry logs = 4;     // 日志列表
+}
+
+/**
+ * 批量日志响应
+ */
+message LogBatchResponse {
+  bool success = 1;               // 是否成功
+  int32 received = 2;             // 接收数量
+  int32 success_count = 3;        // 成功数量
+  int32 failed_count = 4;         // 失败数量
+  string message = 5;             // 响应消息
+}
+
+/**
+ * 日志实体
+ */
+message LogEntry {
+  // 追踪信息
+  string trace_id = 1;            // 追踪ID
+  string span_id = 2;             // 调用链ID
+
+  // 租户信息
+  string tenant_id = 3;           // 租户ID
+  string system_id = 4;           // 系统ID
+
+  // 时间戳
+  int64 timestamp = 5;            // 时间戳（毫秒）
+
+  // 日志基础信息
+  string level = 6;               // 日志级别：DEBUG/INFO/WARN/ERROR
+  string logger = 7;              // 日志记录器名称
+  string thread = 8;              // 线程名
+
+  // 代码位置
+  string class_name = 9;          // 类名
+  string method_name = 10;        // 方法名
+  int32 line_number = 11;         // 行号
+
+  // 日志内容
+  string message = 12;            // 日志消息
+  string exception = 13;          // 异常堆栈
+
+  // 用户信息
+  string user_id = 14;            // 操作用户ID
+  string user_name = 15;          // 操作用户名
+
+  // 业务信息
+  string module = 16;             // 功能模块
+  string operation = 17;          // 操作类型
+
+  // 请求信息
+  string request_url = 18;        // 请求URL
+  string request_method = 19;     // 请求方法：GET/POST/PUT/DELETE
+  string request_params = 20;     // 请求参数（JSON）
+  int64 response_time = 21;       // 响应时间（毫秒）
+
+  // 网络信息
+  string ip = 22;                 // 客户端IP
+  string user_agent = 23;         // 用户代理
+
+  // 扩展信息
+  repeated string tags = 24;      // 标签列表
+  map<string, string> extra = 25; // 扩展字段（JSON）
+}

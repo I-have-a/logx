@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.domidodo</groupId>
+        <artifactId>LogX</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>logx-gateway</artifactId>
+    <packaging>pom</packaging>
+    <name>LogX Gateway</name>
+    <description>网关父项目</description>
+
+    <modules>
+        <module>logx-gateway-http</module>
+        <module>logx-gateway-grpc</module>
+    </modules>
+</project>

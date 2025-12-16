@@ -1,0 +1,44 @@
+module:
+  name: demo
+spring:
+  application:
+    name: logx-${module.name}
+  profiles:
+    active: dev
+
+  # Kafka
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: logx-${module.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # Redis
+  # Elasticsearch
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123
+      database: 0
+
+# 日志配置
+logging:
+  level:
+    com.domidodo.logx: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+server:
+  port: 10240
+logx:
+  mode: standalone
+  service:
+    internal-call: local

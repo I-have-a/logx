@@ -1,0 +1,24 @@
+# kibana/config/kibana.yml
+server.host: "0.0.0.0"
+server.name: "logx-kibana"
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "elastic"
+elasticsearch.password: "YourPassword123!"
+
+# 启用安全
+xpack.security.enabled: true
+xpack.security.encryptionKey: "something_at_least_32_characters_long"  # 改为你自己的32位密钥
+
+# 启用 Fleet
+xpack.fleet.enabled: true
+xpack.fleet.agents.enabled: true
+xpack.fleet.agents.fleet_server.hosts: ["http://fleet-server:8220"]  # 如果部署 fleet-server
+
+# 其他设置
+xpack.encryptedSavedObjects.encryptionKey: "something_at_least_32_characters_long"
+xpack.reporting.encryptionKey: "something_at_least_32_characters_long"
+xpack.spaces.enabled: false
+telemetry.enabled: false
+
+# 中文设置
+i18n.locale: "zh-CN"

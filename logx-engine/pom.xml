@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.domidodo</groupId>
+        <artifactId>LogX</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>logx-engine</artifactId>
+    <packaging>pom</packaging>
+    <name>LogX Engine</name>
+    <description>处理引擎父项目</description>
+
+    <modules>
+        <module>logx-engine-processor</module>
+        <module>logx-engine-storage</module>
+        <module>logx-engine-detection</module>
+    </modules>
+</project>

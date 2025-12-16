@@ -1,0 +1,70 @@
+syntax = "proto3";
+import "log_service.proto";
+
+package logx;
+
+option java_package = "com.domidodo.logx.common.grpc";
+option java_outer_classname = "QueryServiceProto";
+option java_multiple_files = true;
+
+// 日志查询服务
+service QueryService {
+  // 查询日志
+  rpc QueryLogs(QueryRequest) returns (QueryResponse);
+
+  // 根据TraceId查询
+  rpc QueryByTraceId(TraceIdRequest) returns (QueryResponse);
+
+  // 获取日志统计信息
+  rpc GetLogStatistics(StatisticsRequest) returns (StatisticsResponse);
+}
+
+// 查询请求
+message QueryRequest {
+  string tenant_id = 1;
+  string system_id = 2;
+  string start_time = 3;      // ISO 8601 格式
+  string end_time = 4;        // ISO 8601 格式
+  string level = 5;
+  string user_id = 6;
+  string user_name = 7;
+  string module = 8;
+  string operation = 9;
+  string keyword = 10;
+  string trace_id = 11;
+  int64 min_response_time = 12;
+  int64 max_response_time = 13;
+  int32 page = 14;
+  int32 size = 15;
+  string sort_field = 16;
+  string sort_order = 17;
+}
+
+// TraceId查询请求
+message TraceIdRequest {
+  string trace_id = 1;
+}
+
+// 查询响应
+message QueryResponse {
+  bool success = 1;
+  int64 total = 2;
+  repeated LogEntry logs = 3;
+  string message = 4;
+}
+
+// 统计请求
+message StatisticsRequest {
+  string tenant_id = 1;
+  string system_id = 2;
+  string start_time = 3;
+  string end_time = 4;
+  string stat_type = 5;  // MODULE/OPERATION/USER
+}
+
+// 统计响应
+message StatisticsResponse {
+  bool success = 1;
+  map<string, int64> statistics = 2;
+  string message = 3;
+}

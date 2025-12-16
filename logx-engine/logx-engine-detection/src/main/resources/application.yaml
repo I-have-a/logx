@@ -1,0 +1,94 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: logx-engine-detection
+
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/logx?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: root123
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+
+  # Kafka 配置
+  kafka:
+    bootstrap-servers: localhost:29092
+    consumer:
+      group-id: logx-detection-group
+      auto-offset-reset: latest
+      max-poll-records: 500
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      concurrency: 3  # 并发消费者数量
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+    banner: false
+
+# 日志平台配置
+logx:
+  # Kafka Topic
+  kafka:
+    topic:
+      log-processing: logx-logs-processing  # 从Processor处理后的日志
+
+  # 规则配置
+  detection:
+    rule-refresh-interval: 60000  # 规则刷新间隔(ms)，默认1分钟
+    batch-size: 100               # 批量处理大小
+
+  # 通知配置
+  notification:
+    batch-send-cron: "0 0 * * * ?"  # 批量发送cron表达式，每小时整点
+    queue-size: 10000                 # 通知队列大小
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.domidodo.logx: DEBUG
+    org.springframework.kafka: INFO
+    com.baomidou.mybatisplus: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+# 监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 异步任务配置
+spring.task.execution:
+  pool:
+    core-size: 10
+    max-size: 50
+    queue-capacity: 100
+  thread-name-prefix: detection-async-
+
+# 定时任务配置
+spring.task.scheduling:
+  pool:
+    size: 5
+  thread-name-prefix: detection-schedule-

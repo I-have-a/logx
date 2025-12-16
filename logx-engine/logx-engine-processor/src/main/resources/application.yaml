@@ -1,0 +1,84 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: logx-engine-processor
+
+  # Kafka 配置
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      retries: 3
+      batch-size: 16384
+      buffer-memory: 33554432
+      compression-type: lz4
+      acks: 1
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: logx-gateway-http
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # Elasticsearch 配置
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: UHTmljcPmCXBpyuWW9nv
+    connection-timeout: 10000
+    socket-timeout: 30000
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      password: redis123
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/logx?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+    username: root
+    password: root123
+
+# 日志平台配置
+logx:
+  # Kafka Topic
+  kafka:
+    topic:
+      log-ingestion: logx-logs
+
+  # 批量写入配置
+  elasticsearch:
+    batch-size: 500        # 批量写入大小
+    flush-interval: 5000   # 刷新间隔(ms)
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.domidodo.logx: DEBUG
+    org.springframework.kafka: INFO
+    co.elastic.clients: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+mybatis-plus:
+  global-config:
+    banner: false
+
+# 监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.domidodo</groupId>
+        <artifactId>LogX</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>logx-common</artifactId>
+    <packaging>pom</packaging>
+    <name>LogX Common</name>
+    <description>公共模块父项目</description>
+
+    <modules>
+        <module>logx-common-core</module>
+        <module>logx-common-api</module>
+        <module>logx-common-grpc</module>
+    </modules>
+</project>
