@@ -1,5 +1,6 @@
 package com.domidodo.logx.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.io.Serial;
@@ -28,11 +29,13 @@ public class QueryDTO implements Serializable {
     /**
      * 开始时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
     /**
      * 结束时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
     /**

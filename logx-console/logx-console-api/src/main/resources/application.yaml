@@ -41,8 +41,8 @@ spring:
   # Elasticsearch 配置
   elasticsearch:
     uris: http://localhost:9200
-    username:
-    password:
+    username: elastic
+    password: UHTmljcPmCXBpyuWW9nv
     connection-timeout: 10000
     socket-timeout: 30000
 

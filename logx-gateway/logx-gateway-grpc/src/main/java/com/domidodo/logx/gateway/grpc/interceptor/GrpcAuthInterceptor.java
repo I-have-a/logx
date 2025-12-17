@@ -4,7 +4,6 @@ import com.domidodo.logx.common.context.TenantContext;
 import io.grpc.*;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -73,7 +72,7 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
             log.debug("gRPC request authenticated: tenantId={}, systemId={}", tenantId, systemId);
 
             // 5. 继续处理请求，并在完成后清理上下文
-            return new ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT>(
+            return new ForwardingServerCallListener.SimpleForwardingServerCallListener<>(
                     next.startCall(call, headers)) {
                 @Override
                 public void onComplete() {
