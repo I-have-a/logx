@@ -1,6 +1,5 @@
 package com.domidodo.logx.engine.storage.elasticsearch;
 
-import cn.hutool.core.util.StrUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.Time;
 import co.elastic.clients.elasticsearch.core.*;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Elasticsearch 数据导出服务
+ * Elasticsearch 数据导出服务（修复版）
  * 使用 Scroll API 分批导出大量数据
  */
 @Slf4j
@@ -30,11 +28,9 @@ public class EsDataExporter {
     private final ElasticsearchClient elasticsearchClient;
     private final StorageConfig storageConfig;
 
-    private static final int DEFAULT_SCROLL_SIZE = 1000;
-    private static final String DEFAULT_SCROLL_TIMEOUT = "300000";
-
     /**
      * 导出索引全部数据为 JSON 数组字符串
+     * ⚠️ 注意：此方法会将所有数据加载到内存，仅适用于小数据量
      *
      * @param indexName 索引名称
      * @return JSON 数组字符串
@@ -43,26 +39,32 @@ public class EsDataExporter {
         log.info("开始导出索引数据: {}", indexName);
         long startTime = System.currentTimeMillis();
 
+        // 先检查数据量
+        long totalCount = getIndexDocumentCount(indexName);
+        if (totalCount > 100000) {
+            log.warn("索引 {} 有 {} 条数据，建议使用流式导出方法", indexName, totalCount);
+        }
+
         List<Map<String, Object>> allDocuments = new ArrayList<>();
-        AtomicLong totalCount = new AtomicLong(0);
+        AtomicLong processedCount = new AtomicLong(0);
 
         try {
             // 使用 Scroll API 分批查询
             scrollQuery(indexName, document -> {
                 allDocuments.add(document);
-                totalCount.incrementAndGet();
+                processedCount.incrementAndGet();
             });
 
             String jsonResult = JSON.toJSONString(allDocuments);
             long duration = System.currentTimeMillis() - startTime;
 
             log.info("索引数据导出完成: {}, 文档数: {}, 耗时: {}ms, 大小: {} bytes",
-                    indexName, totalCount.get(), duration, jsonResult.length());
+                    indexName, processedCount.get(), duration, jsonResult.length());
 
             return jsonResult;
         } catch (Exception e) {
             log.error("导出索引数据失败: {}", indexName, e);
-            throw new RuntimeException("导出索引数据失败", e);
+            throw new RuntimeException("导出索引数据失败: " + e.getMessage(), e);
         }
     }
 
@@ -70,7 +72,7 @@ public class EsDataExporter {
      * 导出索引数据并流式处理
      * 适用于超大数据量，避免内存溢出
      *
-     * @param indexName 索引名称
+     * @param indexName      索引名称
      * @param batchProcessor 批量处理器
      * @return 导出的文档总数
      */
@@ -88,7 +90,7 @@ public class EsDataExporter {
                 totalCount.incrementAndGet();
 
                 // 当批次达到大小时，调用处理器
-                if (batch.size() >= DEFAULT_SCROLL_SIZE) {
+                if (batch.size() >= storageConfig.getBulk().getSize()) {
                     batchProcessor.accept(new ArrayList<>(batch));
                     batch.clear();
                 }
@@ -106,59 +108,65 @@ public class EsDataExporter {
             return totalCount.get();
         } catch (Exception e) {
             log.error("流式导出失败: {}", indexName, e);
-            throw new RuntimeException("流式导出失败", e);
+            throw new RuntimeException("流式导出失败: " + e.getMessage(), e);
         }
     }
 
     /**
-     * 使用 Scroll API 查询数据
+     * 使用 Scroll API 查询数据（修复版 - 确保资源释放）
      *
-     * @param indexName 索引名称
+     * @param indexName        索引名称
      * @param documentConsumer 文档消费者
      */
-    private void scrollQuery(String indexName, Consumer<Map<String, Object>> documentConsumer)
-            throws IOException {
+    private void scrollQuery(String indexName, Consumer<Map<String, Object>> documentConsumer) {
+        String scrollId = null;
 
-        // 初始化 Scroll 查询
-        SearchResponse<Map> response = elasticsearchClient.search(s -> s
-                        .index(indexName)
-                        .size(DEFAULT_SCROLL_SIZE)
-                        .scroll(Time.of(t -> t.time(DEFAULT_SCROLL_TIMEOUT)))
-                        .query(q -> q.matchAll(m -> m)),
-                Map.class
-        );
-
-        String scrollId = response.scrollId();
-        List<Hit<Map>> hits = response.hits().hits();
-
-        if (hits.isEmpty()) {
-            log.info("索引 {} 没有数据", indexName);
-            return;
-        }
-
-        // 处理第一批数据
-        processHits(hits, documentConsumer);
-
-        // 继续滚动查询
-        while (hits != null && !hits.isEmpty()) {
-            String finalScrollId = scrollId;
-            ScrollResponse<Map> scrollResponse = elasticsearchClient.scroll(s -> s
-                            .scrollId(finalScrollId)
-                            .scroll(Time.of(t -> t.time(DEFAULT_SCROLL_TIMEOUT))),
+        try {
+            // 初始化 Scroll 查询
+            SearchResponse<Map> response = elasticsearchClient.search(s -> s
+                            .index(indexName)
+                            .size(storageConfig.getBulk().getSize())
+                            .scroll(Time.of(t -> t.time(storageConfig.getBulk().getFlushInterval())))
+                            .query(q -> q.matchAll(m -> m)),
                     Map.class
             );
 
-            scrollId = scrollResponse.scrollId();
-            hits = scrollResponse.hits().hits();
+            scrollId = response.scrollId();
+            List<Hit<Map>> hits = response.hits().hits();
 
-            if (hits != null && !hits.isEmpty()) {
-                processHits(hits, documentConsumer);
+            if (hits.isEmpty()) {
+                log.info("索引 {} 没有数据", indexName);
+                return;
             }
-        }
 
-        // 清理 Scroll 上下文
-        if (StrUtil.isNotBlank(scrollId)) {
-            clearScroll(scrollId);
+            // 处理第一批数据
+            processHits(hits, documentConsumer);
+
+            // 继续滚动查询
+            while (hits != null && !hits.isEmpty()) {
+                String finalScrollId = scrollId;
+                ScrollResponse<Map> scrollResponse = elasticsearchClient.scroll(s -> s
+                                .scrollId(finalScrollId)
+                                .scroll(Time.of(t -> t.time(storageConfig.getBulk().getFlushInterval()))),
+                        Map.class
+                );
+
+                scrollId = scrollResponse.scrollId();
+                hits = scrollResponse.hits().hits();
+
+                if (hits != null && !hits.isEmpty()) {
+                    processHits(hits, documentConsumer);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Scroll查询失败: {}", indexName, e);
+            throw new RuntimeException("Scroll查询失败", e);
+        } finally {
+            // 确保清理 Scroll 上下文（在finally块中）
+            if (scrollId != null) {
+                clearScroll(scrollId);
+            }
         }
     }
 
@@ -182,8 +190,15 @@ public class EsDataExporter {
      */
     private void clearScroll(String scrollId) {
         try {
-            elasticsearchClient.clearScroll(c -> c.scrollId(scrollId));
-            log.debug("Scroll 上下文已清理: {}", scrollId);
+            ClearScrollResponse response = elasticsearchClient.clearScroll(c -> c
+                    .scrollId(scrollId)
+            );
+
+            if (response.succeeded()) {
+                log.debug("Scroll 上下文已清理: {}", scrollId);
+            } else {
+                log.warn("Scroll 上下文清理失败: {}", scrollId);
+            }
         } catch (Exception e) {
             log.warn("清理 Scroll 上下文失败: {}", scrollId, e);
         }
@@ -193,12 +208,20 @@ public class EsDataExporter {
      * 导出索引数据到多个 JSON 文件
      * 每个文件包含指定数量的文档
      *
-     * @param indexName 索引名称
+     * @param indexName        索引名称
      * @param documentsPerFile 每个文件的文档数
      * @return JSON 字符串列表
      */
     public List<String> exportIndexToMultipleJsonFiles(String indexName, int documentsPerFile) {
         log.info("开始分文件导出索引数据: {}, 每文件 {} 条", indexName, documentsPerFile);
+
+        // 添加参数验证
+        if (documentsPerFile <= 0) {
+            throw new IllegalArgumentException("documentsPerFile must be positive");
+        }
+        if (documentsPerFile > 10000) {
+            log.warn("documentsPerFile {} 太大，建议不超过10000", documentsPerFile);
+        }
 
         List<String> jsonFiles = new ArrayList<>();
         List<Map<String, Object>> currentBatch = new ArrayList<>();
@@ -224,7 +247,7 @@ public class EsDataExporter {
             return jsonFiles;
         } catch (Exception e) {
             log.error("分文件导出失败: {}", indexName, e);
-            throw new RuntimeException("分文件导出失败", e);
+            throw new RuntimeException("分文件导出失败: " + e.getMessage(), e);
         }
     }
 
@@ -236,7 +259,9 @@ public class EsDataExporter {
      */
     public long getIndexDocumentCount(String indexName) {
         try {
-            CountResponse response = elasticsearchClient.count(c -> c.index(indexName));
+            CountResponse response = elasticsearchClient.count(c -> c
+                    .index(indexName)
+            );
             return response.count();
         } catch (Exception e) {
             log.error("获取索引文档数失败: {}", indexName, e);
@@ -295,18 +320,25 @@ public class EsDataExporter {
     /**
      * 带进度监控的导出
      *
-     * @param indexName 索引名称
+     * @param indexName        索引名称
      * @param progressCallback 进度回调
      * @return JSON 字符串
      */
     public String exportIndexWithProgress(String indexName,
                                           Consumer<ExportProgress> progressCallback) {
         long totalCount = getIndexDocumentCount(indexName);
+
+        // 检查数据量
+        if (totalCount > 1000000) {
+            throw new IllegalArgumentException(
+                    "数据量过大(" + totalCount + "条)，请使用流式导出方法");
+        }
+
         ExportProgress progress = new ExportProgress(totalCount);
 
         log.info("开始导出索引数据: {}, 总文档数: {}", indexName, totalCount);
 
-        List<Map<String, Object>> allDocuments = new ArrayList<>();
+        List<Map<String, Object>> allDocuments = new ArrayList<>((int) totalCount);
 
         try {
             scrollQuery(indexName, document -> {
@@ -328,7 +360,7 @@ public class EsDataExporter {
             return jsonResult;
         } catch (Exception e) {
             log.error("导出失败: {}, {}", indexName, progress, e);
-            throw new RuntimeException("导出失败", e);
+            throw new RuntimeException("导出失败: " + e.getMessage(), e);
         }
     }
 }

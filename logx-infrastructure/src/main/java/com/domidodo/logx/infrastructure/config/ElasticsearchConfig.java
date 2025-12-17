@@ -2,7 +2,11 @@ package com.domidodo.logx.infrastructure.config;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -79,9 +83,16 @@ public class ElasticsearchConfig {
      */
     @Bean
     public ElasticsearchClient elasticsearchClient(RestClient restClient) {
-        RestClientTransport transport = new RestClientTransport(
+
+        JacksonJsonpMapper jacksonJsonpMapper = new JacksonJsonpMapper();
+        ObjectMapper objectMapper = jacksonJsonpMapper.objectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // 使用配置好的映射器创建传输层
+        ElasticsearchTransport transport = new RestClientTransport(
                 restClient,
-                new JacksonJsonpMapper()
+                jacksonJsonpMapper
         );
         ElasticsearchClient client = new ElasticsearchClient(transport);
         log.info("ElasticsearchClient initialized");

@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -33,10 +35,9 @@ public class LogIngestController {
      * 批量接收日志
      */
     @PostMapping("/logs")
-    public Result<Void> ingestLogs(@RequestBody List<@Valid LogDTO> logs) {
+    public Result<Map<String, Object>> ingestLogs(@RequestBody List<@Valid LogDTO> logs) {
         log.debug("批量接收日志: {} 条", logs.size());
-        ingestService.ingestBatch(logs);
-        return Result.success();
+        return ingestService.ingestBatch(logs);
     }
 
     /**

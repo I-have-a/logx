@@ -65,7 +65,7 @@ public class StorageConfig {
     @Data
     public static class BulkConfig {
         private Integer size = 1000;
-        private String flushInterval = "10s";
+        private String flushInterval = "5m";
         private Integer concurrentRequests = 2;
     }
 }

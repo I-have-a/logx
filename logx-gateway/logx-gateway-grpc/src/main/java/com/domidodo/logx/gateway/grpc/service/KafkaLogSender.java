@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -68,9 +70,8 @@ public class KafkaLogSender {
         }
 
         AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failCount = new AtomicInteger(0);
 
-        // 使用 CompletableFuture 批量发送
+        // 1. 准备所有发送任务
         List<CompletableFuture<SendResult<String, String>>> futures = logs.stream()
                 .map(logOne -> {
                     try {
@@ -79,34 +80,32 @@ public class KafkaLogSender {
                         return kafkaTemplate.send(logTopic, key, logJson);
                     } catch (Exception e) {
                         log.error("Failed to prepare log for sending", e);
-                        failCount.incrementAndGet();
                         return CompletableFuture.<SendResult<String, String>>failedFuture(e);
                     }
                 })
                 .toList();
 
-        // 等待所有发送完成
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .whenComplete((v, ex) -> {
-                    if (ex != null) {
-                        log.error("Batch send failed", ex);
-                    }
-                });
+        // 2. 等待所有任务完成（带超时）
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(30, TimeUnit.SECONDS); // ✅ 添加超时
+        } catch (TimeoutException e) {
+            log.error("Batch send timeout after 30s", e);
+        } catch (Exception e) {
+            log.error("Batch send failed", e);
+        }
 
-        // 统计结果
+        // 3. 统计成功数量（不阻塞）
         for (CompletableFuture<SendResult<String, String>> future : futures) {
-            try {
-                future.get(); // 等待结果
+            if (future.isDone() && !future.isCompletedExceptionally()) {
                 successCount.incrementAndGet();
-            } catch (Exception e) {
-                failCount.incrementAndGet();
-                log.error("Failed to send log", e);
             }
         }
 
         int total = logs.size();
+        int failed = total - successCount.get();
         log.info("Batch send completed: total={}, success={}, failed={}",
-                total, successCount.get(), failCount.get());
+                total, successCount.get(), failed);
 
         return successCount.get();
     }
