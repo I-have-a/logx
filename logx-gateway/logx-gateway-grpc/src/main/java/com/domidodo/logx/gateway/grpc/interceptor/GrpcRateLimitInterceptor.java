@@ -49,8 +49,8 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
         }
 
         try {
-            Long tenantId = TenantContext.getTenantId();
-            Long systemId = TenantContext.getSystemId();
+            String tenantId = TenantContext.getTenantId();
+            String systemId = TenantContext.getSystemId();
 
             // 1. 全局限流检查
             if (!checkGlobalLimit()) {
@@ -100,7 +100,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
     /**
      * 租户限流检查
      */
-    private boolean checkTenantLimit(Long tenantId) {
+    private boolean checkTenantLimit(String tenantId) {
         String key = "rate_limit:tenant:" + tenantId + ":" + getCurrentMinute();
         return redisRateLimiter.tryAcquire(key, tenantQps * 60, WINDOW_SECONDS);
     }
@@ -108,7 +108,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
     /**
      * 系统限流检查
      */
-    private boolean checkSystemLimit(Long tenantId, Long systemId) {
+    private boolean checkSystemLimit(String tenantId, String systemId) {
         String key = "rate_limit:system:" + tenantId + ":" + systemId + ":" + getCurrentMinute();
         return redisRateLimiter.tryAcquire(key, systemQpm, WINDOW_SECONDS);
     }

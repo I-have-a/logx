@@ -17,9 +17,9 @@ public class LogDTO implements Serializable {
 
     private String id;
 
-    private Long tenantId;
+    private String tenantId;
 
-    private Long systemId;
+    private String systemId;
 
     private String systemName;
 
@@ -72,5 +72,5 @@ public class LogDTO implements Serializable {
 
     private String userAgent;
 
-    private int lineNumber;
+    private Integer lineNumber;
 }

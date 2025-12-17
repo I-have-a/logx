@@ -48,7 +48,7 @@ public class LogKafkaConsumer {
     private long retryBackoffMs;
 
     /**
-     * ✅ 批量消费日志（完全修复版）
+     * 批量消费日志
      */
     @KafkaListener(
             topics = "${logx.kafka.topic.log-ingestion:logx-logs}",

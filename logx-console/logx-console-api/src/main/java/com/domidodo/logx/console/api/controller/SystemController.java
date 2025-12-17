@@ -28,11 +28,10 @@ public class SystemController {
     @GetMapping("/list")
     @Operation(summary = "分页查询系统列表")
     public Result<PageResult<SystemDTO>> listSystems(
-            @RequestParam(required = false) String tenantId,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
         try {
-            PageResult<SystemDTO> result = systemService.listSystems(tenantId, page, size);
+            PageResult<SystemDTO> result = systemService.listSystems(page, size);
             return Result.success(result);
         } catch (Exception e) {
             log.error("List systems failed", e);

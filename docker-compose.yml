@@ -128,6 +128,8 @@ services:
       MINIO_ROOT_PASSWORD: admin123     # 管理员密码
       MINIO_REGION: us-east-1           # 区域
       MINIO_REGION_NAME: us-east-1      # 区域名称
+      MINIO_BROWSER_LANGUAGE: zh-CN
+      MINIO_BROWSER: on
     ports:
       - "9000:9000"    # S3 API端口
       - "9001:9001"    # 管理控制台端口

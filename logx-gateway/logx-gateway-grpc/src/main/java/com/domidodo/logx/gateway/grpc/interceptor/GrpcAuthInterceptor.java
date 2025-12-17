@@ -66,8 +66,8 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
             }
 
             // 4. 设置租户上下文
-            TenantContext.setTenantId(Long.valueOf(tenantId));
-            TenantContext.setSystemId(Long.valueOf(systemId));
+            TenantContext.setTenantId(tenantId);
+            TenantContext.setSystemId(systemId);
 
             log.debug("gRPC request authenticated: tenantId={}, systemId={}", tenantId, systemId);
 

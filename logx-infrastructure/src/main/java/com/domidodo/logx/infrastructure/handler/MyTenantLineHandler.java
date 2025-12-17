@@ -33,12 +33,11 @@ public class MyTenantLineHandler implements TenantLineHandler {
      */
     @Override
     public Expression getTenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) {
-            log.warn("Tenant ID is null, using default value");
-            return new StringValue("default");
+        String tenantId = TenantContext.getTenantId();
+        if (TenantContext.isIgnoreTenant()) {
+            return null; // 返回 null 则不添加租户条件
         }
-        return new StringValue(tenantId.toString());
+        return new StringValue(tenantId);
     }
 
     /**
@@ -56,6 +55,10 @@ public class MyTenantLineHandler implements TenantLineHandler {
     public boolean ignoreTable(String tableName) {
         // 转换为小写统一比较
         String lowerTableName = tableName.toLowerCase();
+
+        if (TenantContext.isIgnoreTenant()) {
+            return true;
+        }
 
         // 如果在忽略列表中，返回 true
         boolean ignored = IGNORE_TABLES.stream()

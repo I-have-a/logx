@@ -24,9 +24,8 @@ public class TenantInterceptor implements HandlerInterceptor {
         String tenantIdStr = request.getHeader(SystemConstant.TENANT_HEADER);
         if (StringUtils.hasText(tenantIdStr)) {
             try {
-                Long tenantId = Long.parseLong(tenantIdStr);
-                TenantContext.setTenantId(tenantId);
-                log.debug("租户ID: {}", tenantId);
+                TenantContext.setTenantId(tenantIdStr);
+                log.debug("租户ID: {}", tenantIdStr);
             } catch (NumberFormatException e) {
                 log.warn("无效的租户ID: {}", tenantIdStr);
             }
