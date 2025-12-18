@@ -1,24 +1,28 @@
-package com.domidodo.logx;
+package com.domidodo.logx.sdk.core;
 
-import com.domidodo.logx.sdk.core.LogXClient;
 import com.domidodo.logx.sdk.core.model.LogEntry;
 import com.google.protobuf.Struct;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
  * google.protobuf.Struct 完整测试示例
  * 演示各种数据类型和使用场景
  */
-@SpringBootTest(classes = LogXClient.class)
+@SpringBootTest()
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class StructCompleteTest {
 
-    @Autowired(required = false)
-    private LogXClient logXClient;
+    private final LogXClient logXClient = LogXClient.builder()
+            .tenantId("your_tenant_id")
+            .systemId("your_system_id")
+            .apiKey("your_api_key")
+            .gatewayUrl("http://localhost:10240")
+            .build();
 
     @BeforeAll
     public static void setup() {
@@ -63,7 +67,7 @@ public class StructCompleteTest {
         Map<String, Object> extra = new HashMap<>();
         extra.put("stringArray", List.of("apple", "banana", "orange"));
         extra.put("numberArray", List.of(1, 2, 3, 4, 5));
-        extra.put("mixedArray", List.of("text", 123, true, null));
+        extra.put("mixedArray", List.of("text", 123, true));
         extra.put("emptyArray", List.of());
 
         logXClient.info("数组类型测试", extra);
@@ -373,7 +377,7 @@ public class StructCompleteTest {
         for (int i = 0; i < count; i++) {
             Map<String, Object> extra = Map.of(
                     "index", i,
-                    "timestamp", System.currentTimeMillis(),
+                    "timestamp", LocalDateTime.now(),
                     "data", Map.of(
                             "key1", "value1",
                             "key2", 123,
@@ -455,19 +459,21 @@ public class StructCompleteTest {
             // 模拟异常
             int result = 10 / 0;
         } catch (Exception e) {
-            // 记录异常，同时包含 extra
-            Map<String, Object> extra = Map.of(
-                    "operation", "divide",
-                    "dividend", 10,
-                    "divisor", 0,
-                    "attemptedAt", System.currentTimeMillis()
-            );
+            for (int i = 0; i < 100000; i++) {
+                // 记录异常，同时包含 extra
+                Map<String, Object> extra = Map.of(
+                        "operation", "divide",
+                        "dividend", 10,
+                        "divisor", 0,
+                        "attemptedAt", System.currentTimeMillis()
+                );
 
-            logXClient.error("除零错误", e, extra);
+                logXClient.error("除零错误", e, extra);
 
-            System.out.println("✅ 异常日志记录成功");
-            System.out.println("   异常类型: " + e.getClass().getSimpleName());
-            System.out.println("   包含 extra: 是");
+                System.out.println("✅ 异常日志记录成功");
+                System.out.println("   异常类型: " + e.getClass().getSimpleName());
+                System.out.println("   包含 extra: 是");
+            }
         }
     }
 }
