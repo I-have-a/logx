@@ -1,5 +1,6 @@
 package com.domidodo.logx.engine.detection.rules;
 
+import com.domidodo.logx.common.context.TenantContext;
 import com.domidodo.logx.engine.detection.alerts.AlertService;
 import com.domidodo.logx.engine.detection.entity.Rule;
 import com.domidodo.logx.engine.detection.mapper.RuleMapper;
@@ -161,6 +162,7 @@ public class RuleExecutor {
      */
     public void loadRules() {
         try {
+            TenantContext.setIgnoreTenant(true);
             List<Rule> allRules = ruleMapper.selectAllEnabledRules();
             ruleCache.clear();
 

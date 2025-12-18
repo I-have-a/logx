@@ -166,7 +166,7 @@ public class LogAspect {
                 // 避免输出过长的参数
                 String str = arg.toString();
                 if (str.length() > 200) {
-                    sb.append(str.substring(0, 200)).append("...");
+                    sb.append(str, 0, 200).append("...");
                 } else {
                     sb.append(str);
                 }

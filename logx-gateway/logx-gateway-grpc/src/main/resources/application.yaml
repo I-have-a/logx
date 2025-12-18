@@ -7,13 +7,13 @@ spring:
 
   # Kafka 配置
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092
     producer:
       retries: 3
       batch-size: 16384
       buffer-memory: 33554432
       compression-type: lz4
-      acks: 1
+      acks: all
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
@@ -46,13 +46,6 @@ grpc:
     max-inbound-message-size: 10485760
     # 最大元数据大小
     max-inbound-metadata-size: 8192
-    # 启用反射（方便 grpcurl 等工具调试）
-    enable-reflection: true
-    # 线程池配置
-    executor:
-      core-pool-size: 10
-      max-pool-size: 50
-      queue-capacity: 100
     # Keep-alive 配置
     keep-alive-time: 5m
     keep-alive-timeout: 20s

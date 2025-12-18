@@ -88,7 +88,7 @@ public class KafkaLogSender {
         // 2. 等待所有任务完成（带超时）
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                    .get(30, TimeUnit.SECONDS); // ✅ 添加超时
+                    .get(30, TimeUnit.SECONDS); // 添加超时
         } catch (TimeoutException e) {
             log.error("Batch send timeout after 30s", e);
         } catch (Exception e) {

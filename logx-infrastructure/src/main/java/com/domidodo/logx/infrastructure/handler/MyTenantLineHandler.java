@@ -37,6 +37,11 @@ public class MyTenantLineHandler implements TenantLineHandler {
         if (TenantContext.isIgnoreTenant()) {
             return null; // 返回 null 则不添加租户条件
         }
+        if (tenantId == null) {
+            log.warn("TenantId is null, replace with default");
+            return new StringValue("default"); // 登录状态失效，返回 null 则不添加租户条件
+        }
+        log.debug("Get tenantId: {}", tenantId);
         return new StringValue(tenantId);
     }
 

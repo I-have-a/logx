@@ -16,6 +16,7 @@ import java.util.concurrent.*;
 /**
  * LogX 客户端
  * 支持 HTTP 和 gRPC 两种模式
+ * 支持 google.protobuf.Struct 类型的扩展字段
  */
 @Slf4j
 public class LogXClient {
@@ -38,10 +39,10 @@ public class LogXClient {
         // 根据配置选择发送器
         if ("grpc".equalsIgnoreCase(config.getMode())) {
             this.sender = new GrpcLogSender(config);
-            log.info("LogX SDK initialized with gRPC mode");
+            log.info("LogX SDK 已用 gRPC 模式初始化");
         } else {
             this.sender = new HttpLogSender(config);
-            log.info("LogX SDK initialized with HTTP mode");
+            log.info("LogX SDK 已用 HTTP 模式初始化");
         }
 
         this.buffer = new LogBuffer(config.getBufferSize());
@@ -55,6 +56,8 @@ public class LogXClient {
         return new Builder();
     }
 
+    // ============ 简化的日志方法 ============
+
     /**
      * 记录 INFO 日志
      */
@@ -62,8 +65,11 @@ public class LogXClient {
         log(Level.INFO, message, null, null);
     }
 
-    public void info(String message, Map<String, Object> context) {
-        log(Level.INFO, message, null, context);
+    /**
+     * 记录 INFO 日志（带扩展字段）
+     */
+    public void info(String message, Map<String, Object> extra) {
+        log(Level.INFO, message, null, extra);
     }
 
     /**
@@ -73,12 +79,18 @@ public class LogXClient {
         log(Level.ERROR, message, null, null);
     }
 
+    /**
+     * 记录 ERROR 日志（带异常）
+     */
     public void error(String message, Throwable throwable) {
         log(Level.ERROR, message, throwable, null);
     }
 
-    public void error(String message, Throwable throwable, Map<String, Object> context) {
-        log(Level.ERROR, message, throwable, context);
+    /**
+     * 记录 ERROR 日志（带异常和扩展字段）
+     */
+    public void error(String message, Throwable throwable, Map<String, Object> extra) {
+        log(Level.ERROR, message, throwable, extra);
     }
 
     /**
@@ -88,8 +100,11 @@ public class LogXClient {
         log(Level.WARN, message, null, null);
     }
 
-    public void warn(String message, Map<String, Object> context) {
-        log(Level.WARN, message, null, context);
+    /**
+     * 记录 WARN 日志（带扩展字段）
+     */
+    public void warn(String message, Map<String, Object> extra) {
+        log(Level.WARN, message, null, extra);
     }
 
     /**
@@ -99,46 +114,142 @@ public class LogXClient {
         log(Level.DEBUG, message, null, null);
     }
 
-    public void debug(String message, Map<String, Object> context) {
-        log(Level.DEBUG, message, null, context);
+    /**
+     * 记录 DEBUG 日志（带扩展字段）
+     */
+    public void debug(String message, Map<String, Object> extra) {
+        log(Level.DEBUG, message, null, extra);
+    }
+
+    // ============ 完整的日志方法 ============
+
+    /**
+     * 记录完整日志（支持所有字段）
+     */
+    public void log(LogEntry entry) {
+        try {
+            // 补充基础信息
+            if (entry.getId() == null) {
+                entry.setId(UUID.randomUUID().toString().replace("-", ""));
+            }
+            if (entry.getTenantId() == null) {
+                entry.setTenantId(config.getTenantId());
+            }
+            if (entry.getSystemId() == null) {
+                entry.setSystemId(config.getSystemId());
+            }
+            if (entry.getSystemName() == null) {
+                entry.setSystemName(config.getSystemName());
+            }
+            if (entry.getTimestamp() == null) {
+                entry.setTimestamp(LocalDateTime.now());
+            }
+
+            // 自动填充代码位置信息
+            if (entry.getClassName() == null || entry.getMethodName() == null) {
+                fillCodeLocation(entry);
+            }
+
+            // 处理异常对象
+            if (entry.getThrowable() != null && entry.getException() == null) {
+                entry.setThrowable(entry.getThrowable());
+            }
+
+            // 添加到缓冲区或直接发送
+            if (config.isBufferEnabled()) {
+                buffer.add(entry);
+                if (buffer.isFull()) {
+                    flush();
+                }
+            } else {
+                sender.send(entry);
+            }
+        } catch (Exception e) {
+            log.error("记录日志失败", e);
+        }
     }
 
     /**
-     * 核心日志记录方法
+     * 核心日志记录方法（简化版）
+     * extra 参数会被转换为 google.protobuf.Struct
      */
-    private void log(Level level, String message, Throwable throwable, Map<String, Object> context) {
+    private void log(Level level, String message, Throwable throwable, Map<String, Object> extra) {
         try {
-            LogEntry entry = LogEntry.builder()
+            LogEntry.LogEntryBuilder entryBuilder = LogEntry.builder()
                     .id(UUID.randomUUID().toString().replace("-", ""))
                     .tenantId(config.getTenantId())
                     .systemId(config.getSystemId())
                     .systemName(config.getSystemName())
                     .level(level.name())
                     .message(message)
-                    .timestamp(LocalDateTime.now())
-                    .context(context)
-                    .build();
+                    .timestamp(LocalDateTime.now());
+
+            // 添加扩展字段（会被转换为 Struct）
+            if (extra != null && !extra.isEmpty()) {
+                entryBuilder.context(extra);  // 使用 context，最终会合并到 extra Struct 中
+            }
+
+            LogEntry entry = entryBuilder.build();
 
             // 添加异常信息
             if (throwable != null) {
-                entry.setExceptionType(throwable.getClass().getName());
-                entry.setStackTrace(getStackTrace(throwable));
+                entry.setThrowable(throwable);
             }
 
-            // 添加到缓冲区
+            // 自动填充代码位置信息
+            fillCodeLocation(entry);
+
+            // 添加到缓冲区或直接发送
             if (config.isBufferEnabled()) {
                 buffer.add(entry);
-
-                // 缓冲区满时立即刷新
                 if (buffer.isFull()) {
                     flush();
                 }
             } else {
-                // 直接发送
                 sender.send(entry);
             }
         } catch (Exception e) {
             log.error("记录日志失败", e);
+        }
+    }
+
+    /**
+     * 自动填充代码位置信息
+     */
+    private void fillCodeLocation(LogEntry entry) {
+        try {
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            // 跳过 getStackTrace, fillCodeLocation, log 方法
+            // 通常需要跳过 4-5 层才能到达实际调用位置
+            for (int i = 4; i < Math.min(stackTrace.length, 10); i++) {
+                StackTraceElement element = stackTrace[i];
+                String className = element.getClassName();
+
+                // 跳过 LogXClient 和 LogXLogger 类
+                if (className.contains("LogXClient") || className.contains("LogXLogger")) {
+                    continue;
+                }
+
+                // 找到第一个用户代码
+                if (entry.getClassName() == null) {
+                    entry.setClassName(className);
+                }
+                if (entry.getMethodName() == null) {
+                    entry.setMethodName(element.getMethodName());
+                }
+                if (entry.getLineNumber() == null) {
+                    entry.setLineNumber(element.getLineNumber());
+                }
+                break;
+            }
+
+            // 填充线程名
+            if (entry.getThread() == null) {
+                entry.setThread(Thread.currentThread().getName());
+            }
+        } catch (Exception e) {
+            // 忽略错误，代码位置信息不是必需的
+            log.debug("Failed to fill code location", e);
         }
     }
 
@@ -180,7 +291,9 @@ public class LogXClient {
 
             // 关闭定时任务
             scheduler.shutdown();
-            scheduler.awaitTermination(5, TimeUnit.SECONDS);
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
 
             // 关闭发送器
             if (sender instanceof GrpcLogSender) {
@@ -194,37 +307,42 @@ public class LogXClient {
     }
 
     /**
-     * 获取异常堆栈
-     */
-    private String getStackTrace(Throwable throwable) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(throwable.toString()).append("\n");
-
-        for (StackTraceElement element : throwable.getStackTrace()) {
-            sb.append("\tat ").append(element.toString()).append("\n");
-        }
-
-        Throwable cause = throwable.getCause();
-        if (cause != null) {
-            sb.append("Caused by: ").append(getStackTrace(cause));
-        }
-
-        return sb.toString();
-    }
-
-    /**
      * Builder
      */
     public static class Builder {
         private final LogXConfig config = new LogXConfig();
 
-        public Builder tenantId(Long tenantId) {
+        /**
+         * 设置租户ID（使用 String 类型）
+         */
+        public Builder tenantId(String tenantId) {
             config.setTenantId(tenantId);
             return this;
         }
 
-        public Builder systemId(Long systemId) {
+        /**
+         * 设置租户ID（兼容 Long 类型）
+         */
+        @Deprecated
+        public Builder tenantId(Long tenantId) {
+            config.setTenantId(String.valueOf(tenantId));
+            return this;
+        }
+
+        /**
+         * 设置系统ID（使用 String 类型）
+         */
+        public Builder systemId(String systemId) {
             config.setSystemId(systemId);
+            return this;
+        }
+
+        /**
+         * 设置系统ID（兼容 Long 类型）
+         */
+        @Deprecated
+        public Builder systemId(Long systemId) {
+            config.setSystemId(String.valueOf(systemId));
             return this;
         }
 
@@ -277,23 +395,23 @@ public class LogXClient {
 
         public LogXClient build() {
             // 验证必填参数
-            if (config.getTenantId() == null) {
+            if (config.getTenantId() == null || config.getTenantId().isEmpty()) {
                 throw new IllegalArgumentException("tenantId 不能为空");
             }
-            if (config.getSystemId() == null) {
+            if (config.getSystemId() == null || config.getSystemId().isEmpty()) {
                 throw new IllegalArgumentException("systemId 不能为空");
             }
-            if (config.getApiKey() == null) {
+            if (config.getApiKey() == null || config.getApiKey().isEmpty()) {
                 throw new IllegalArgumentException("apiKey 不能为空");
             }
 
             // 验证网关配置
             if ("grpc".equalsIgnoreCase(config.getMode())) {
-                if (config.getGrpcHost() == null) {
+                if (config.getGrpcHost() == null || config.getGrpcHost().isEmpty()) {
                     throw new IllegalArgumentException("gRPC 模式下 grpcHost 不能为空");
                 }
             } else {
-                if (config.getGatewayUrl() == null) {
+                if (config.getGatewayUrl() == null || config.getGatewayUrl().isEmpty()) {
                     throw new IllegalArgumentException("HTTP 模式下 gatewayUrl 不能为空");
                 }
             }

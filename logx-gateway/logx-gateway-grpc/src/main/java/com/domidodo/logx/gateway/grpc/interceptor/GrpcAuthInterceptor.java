@@ -19,13 +19,13 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
      * 元数据 Key
      */
     private static final Metadata.Key<String> API_KEY_METADATA_KEY =
-            Metadata.Key.of("x-api-key", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-Api-Key", Metadata.ASCII_STRING_MARSHALLER);
 
     private static final Metadata.Key<String> TENANT_ID_METADATA_KEY =
-            Metadata.Key.of("x-tenant-id", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-Tenant-Id", Metadata.ASCII_STRING_MARSHALLER);
 
     private static final Metadata.Key<String> SYSTEM_ID_METADATA_KEY =
-            Metadata.Key.of("x-system-id", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-System-Id", Metadata.ASCII_STRING_MARSHALLER);
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(

@@ -25,19 +25,25 @@ public class RedisRateLimiter {
      * 返回值：1=允许通过，0=限流
      */
     private static final String LUA_SCRIPT =
-            "local key = KEYS[1]\n" +
-            "local limit = tonumber(ARGV[1])\n" +
-            "local window = tonumber(ARGV[2])\n" +
-            "local current = tonumber(redis.call('get', key) or '0')\n" +
-            "if current < limit then\n" +
-            "    redis.call('incr', key)\n" +
-            "    if current == 0 then\n" +
-            "        redis.call('expire', key, window)\n" +
-            "    end\n" +
-            "    return 1\n" +
-            "else\n" +
-            "    return 0\n" +
-            "end";
+            """
+                    local key = KEYS[1]
+                    local limit = tonumber(ARGV[1]) or 0
+                    local window = tonumber(ARGV[2]) or 0
+                    redis.log(redis.LOG_WARNING,ARGV[1])
+                    redis.log(redis.LOG_WARNING,ARGV[2])
+                    if limit <= 0 or window <= 0 then
+                        return 1
+                    end
+                    local current = tonumber(redis.call('get', key)) or 0
+                    if current < limit then
+                        current = redis.call('incr', key)
+                        if current == 1 then
+                            redis.call('expire', key, window)
+                        end
+                        return 1
+                    else
+                        return 0
+                    end""";
 
     /**
      * 检查是否允许通过（简单计数器方式）
@@ -66,8 +72,8 @@ public class RedisRateLimiter {
     /**
      * 获取剩余配额
      *
-     * @param key    限流key
-     * @param limit  限流次数
+     * @param key   限流key
+     * @param limit 限流次数
      * @return 剩余次数
      */
     public long getRemaining(String key, int limit) {

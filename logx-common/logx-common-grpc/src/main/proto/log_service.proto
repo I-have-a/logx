@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/struct.proto"; // 引入 struct.proto
 
 package logx;
 
@@ -88,5 +89,5 @@ message LogEntry {
 
   // 扩展信息
   repeated string tags = 24;      // 标签列表
-  map<string, string> extra = 25; // 扩展字段（JSON）
+  google.protobuf.Struct extra = 25; // 扩展字段（JSON）
 }

@@ -1,11 +1,9 @@
 package com.domidodo.logx.sdk.spring.autoconfigure;
 
-
 import com.domidodo.logx.sdk.spring.aspect.LogAspect;
 import com.domidodo.logx.sdk.spring.properties.LogXProperties;
 import com.domidodo.logx.sdk.core.LogXClient;
 import com.domidodo.logx.sdk.core.LogXLogger;
-import com.domidodo.logx.sdk.core.config.LogXConfig;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -13,7 +11,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 
 @Slf4j
 @Configuration
@@ -31,26 +28,33 @@ public class LogXAutoConfiguration {
         // 验证配置
         validateConfig(properties);
 
-        LogXConfig config = new LogXConfig();
-        config.setTenantId(properties.getTenantId());
-        config.setSystemId(properties.getSystemId());
-        config.setSystemName(properties.getSystemName());
-        config.setGatewayUrl(properties.getGateway().getUrl());
-        config.setConnectTimeout(properties.getGateway().getConnectTimeout());
-        config.setReadTimeout(properties.getGateway().getReadTimeout());
-        config.setBufferEnabled(properties.getBuffer().isEnabled());
-        config.setBufferSize(properties.getBuffer().getSize());
-        config.setFlushInterval(properties.getBuffer().getFlushInterval());
+        // 创建客户端 Builder
+        LogXClient.Builder builder = LogXClient.builder()
+                .tenantId(properties.getTenantId())
+                .systemId(properties.getSystemId())
+                .systemName(properties.getSystemName())
+                .apiKey(properties.getApiKey())
+                .mode(properties.getMode())
+                .bufferEnabled(properties.getBuffer().isEnabled())
+                .bufferSize(properties.getBuffer().getSize());
 
-        // 创建客户端
-        logXClient = LogXClient.builder()
-                .tenantId(config.getTenantId())
-                .systemId(config.getSystemId())
-                .systemName(config.getSystemName())
-                .gatewayUrl(config.getGatewayUrl())
-                .bufferEnabled(config.isBufferEnabled())
-                .bufferSize(config.getBufferSize())
-                .build();
+        // 根据模式设置网关配置
+        if ("grpc".equalsIgnoreCase(properties.getMode())) {
+            builder.grpcEndpoint(
+                    properties.getGateway().getHost(),
+                    properties.getGateway().getPort()
+            );
+            log.info("LogX SDK 使用 gRPC 模式 [{}:{}]",
+                    properties.getGateway().getHost(),
+                    properties.getGateway().getPort());
+        } else {
+            builder.gatewayUrl(properties.getGateway().getUrl());
+            log.info("LogX SDK 使用 HTTP 模式 [{}]",
+                    properties.getGateway().getUrl());
+        }
+
+        // 构建客户端
+        logXClient = builder.build();
 
         // 初始化静态日志记录器
         LogXLogger.initClient(logXClient);
@@ -85,6 +89,23 @@ public class LogXAutoConfiguration {
         }
         if (properties.getSystemName() == null || properties.getSystemName().isEmpty()) {
             throw new IllegalArgumentException("logx.system-name 不能为空");
+        }
+        if (properties.getApiKey() == null || properties.getApiKey().isEmpty()) {
+            throw new IllegalArgumentException("logx.api-key 不能为空");
+        }
+
+        // 验证网关配置
+        if ("grpc".equalsIgnoreCase(properties.getMode())) {
+            if (properties.getGateway().getHost() == null || properties.getGateway().getHost().isEmpty()) {
+                throw new IllegalArgumentException("gRPC 模式下 logx.gateway.host 不能为空");
+            }
+            if (properties.getGateway().getPort() <= 0) {
+                throw new IllegalArgumentException("gRPC 模式下 logx.gateway.port 必须大于 0");
+            }
+        } else {
+            if (properties.getGateway().getUrl() == null || properties.getGateway().getUrl().isEmpty()) {
+                throw new IllegalArgumentException("HTTP 模式下 logx.gateway.url 不能为空");
+            }
         }
     }
 }

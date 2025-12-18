@@ -1,14 +1,15 @@
 package com.domidodo.logx.sdk.spring.properties;
 
-
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
+/**
+ * LogX 配置属性
+ * 类型统一使用 String，与 gRPC Proto 保持一致
+ */
 @Data
-@Component
 @ConfigurationProperties(prefix = "logx")
 public class LogXProperties {
 
@@ -20,17 +21,22 @@ public class LogXProperties {
     /**
      * 租户ID
      */
-    private Long tenantId;
+    private String tenantId;
 
     /**
      * 系统ID
      */
-    private Long systemId;
+    private String systemId;
 
     /**
      * 系统名称
      */
     private String systemName;
+
+    /**
+     * API密钥（用于认证）
+     */
+    private String apiKey;
 
     /**
      * 通信模式: http 或 grpc

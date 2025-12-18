@@ -4,6 +4,7 @@ import com.domidodo.logx.common.grpc.*;
 import com.domidodo.logx.sdk.core.HeaderClientInterceptor;
 import com.domidodo.logx.sdk.core.config.LogXConfig;
 import com.domidodo.logx.sdk.core.model.LogEntry;
+import com.google.protobuf.Struct;
 import io.grpc.*;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC 日志发送器
- * 使用重构后的 proto 定义
+ * 支持 google.protobuf.Struct 类型的 extra 字段
  */
 @Slf4j
 public class GrpcLogSender implements LogSender {
@@ -41,20 +42,16 @@ public class GrpcLogSender implements LogSender {
         this.channel = ManagedChannelBuilder
                 .forAddress(config.getGrpcHost(), config.getGrpcPort())
                 .usePlaintext()
-                .maxInboundMessageSize(10 * 1024 * 1024) // 10MB
+                .maxInboundMessageSize(config.getGrpcMaxInboundMessageSize())
                 .build();
 
         // 创建带认证的 Stub
         Metadata metadata = createMetadata();
-
         ClientInterceptor interceptor = new HeaderClientInterceptor(metadata);
-
-        Channel interceptedChannel =
-                ClientInterceptors.intercept(channel, interceptor);
+        Channel interceptedChannel = ClientInterceptors.intercept(channel, interceptor);
 
         this.blockingStub = LogServiceGrpc.newBlockingStub(interceptedChannel);
         this.asyncStub = LogServiceGrpc.newStub(interceptedChannel);
-
     }
 
     /**
@@ -63,10 +60,9 @@ public class GrpcLogSender implements LogSender {
     @Override
     public void send(LogEntry entry) {
         try {
-            // 将单条日志包装为批量请求
             LogBatchRequest request = LogBatchRequest.newBuilder()
-                    .setTenantId(String.valueOf(config.getTenantId()))
-                    .setSystemId(String.valueOf(config.getSystemId()))
+                    .setTenantId(config.getTenantId())
+                    .setSystemId(config.getSystemId())
                     .setApiKey(config.getApiKey())
                     .addLogs(buildLogEntry(entry))
                     .build();
@@ -95,8 +91,8 @@ public class GrpcLogSender implements LogSender {
         try {
             // 构建批量请求
             LogBatchRequest.Builder requestBuilder = LogBatchRequest.newBuilder()
-                    .setTenantId(String.valueOf(config.getTenantId()))
-                    .setSystemId(String.valueOf(config.getSystemId()))
+                    .setTenantId(config.getTenantId())
+                    .setSystemId(config.getSystemId())
                     .setApiKey(config.getApiKey());
 
             // 添加所有日志
@@ -175,56 +171,138 @@ public class GrpcLogSender implements LogSender {
     }
 
     /**
-     * 构建 gRPC LogEntry
+     * 构建 gRPC LogEntry（支持所有字段和 Struct）
      */
     private com.domidodo.logx.common.grpc.LogEntry buildLogEntry(LogEntry entry) {
         com.domidodo.logx.common.grpc.LogEntry.Builder builder =
                 com.domidodo.logx.common.grpc.LogEntry.newBuilder();
 
-        // 基础信息
-        builder.setTraceId(entry.getTraceId() != null ? entry.getTraceId() : "");
-        builder.setSpanId(entry.getSpanId() != null ? entry.getSpanId() : "");
-        builder.setTenantId(String.valueOf(config.getTenantId()));
-        builder.setSystemId(String.valueOf(config.getSystemId()));
+        // ============ 追踪信息 ============
+        if (entry.getTraceId() != null) {
+            builder.setTraceId(entry.getTraceId());
+        }
+        if (entry.getSpanId() != null) {
+            builder.setSpanId(entry.getSpanId());
+        }
 
-        // 时间戳
+        // ============ 租户信息 ============
+        builder.setTenantId(config.getTenantId());
+        builder.setSystemId(config.getSystemId());
+
+        // ============ 时间戳 ============
         if (entry.getTimestamp() != null) {
             builder.setTimestamp(
-                    entry.getTimestamp().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    entry.getTimestamp()
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toInstant()
+                            .toEpochMilli()
             );
         } else {
             builder.setTimestamp(System.currentTimeMillis());
         }
 
-        // 日志级别和内容
-        builder.setLevel(entry.getLevel() != null ? entry.getLevel() : "INFO");
-        builder.setMessage(entry.getMessage() != null ? entry.getMessage() : "");
-
-        // 代码位置信息（从堆栈中提取）
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        if (stackTrace.length > 3) {
-            StackTraceElement element = stackTrace[3]; // 跳过 getStackTrace、buildLogEntry、log 方法
-            builder.setClassName(element.getClassName());
-            builder.setMethodName(element.getMethodName());
-            builder.setLineNumber(element.getLineNumber());
+        // ============ 日志基础信息 ============
+        if (entry.getLevel() != null) {
+            builder.setLevel(entry.getLevel());
+        }
+        if (entry.getLogger() != null) {
+            builder.setLogger(entry.getLogger());
+        }
+        if (entry.getThread() != null) {
+            builder.setThread(entry.getThread());
         }
 
-        // 异常信息
-        if (entry.getExceptionType() != null) {
-            builder.setException(entry.getExceptionType() + "\n" +
-                                 (entry.getStackTrace() != null ? entry.getStackTrace() : ""));
+        // ============ 代码位置 ============
+        if (entry.getClassName() != null) {
+            builder.setClassName(entry.getClassName());
+        }
+        if (entry.getMethodName() != null) {
+            builder.setMethodName(entry.getMethodName());
+        }
+        if (entry.getLineNumber() != null) {
+            builder.setLineNumber(entry.getLineNumber());
         }
 
-        // 上下文信息
-        if (entry.getContext() != null) {
-            entry.getContext().forEach((key, value) -> {
-                if (value != null) {
-                    builder.putExtra(key, value.toString());
-                }
-            });
+        // ============ 日志内容 ============
+        if (entry.getMessage() != null) {
+            builder.setMessage(entry.getMessage());
+        }
+        if (entry.getException() != null) {
+            builder.setException(entry.getException());
+        }
+
+        // ============ 用户信息 ============
+        if (entry.getUserId() != null) {
+            builder.setUserId(entry.getUserId());
+        }
+        if (entry.getUserName() != null) {
+            builder.setUserName(entry.getUserName());
+        }
+
+        // ============ 业务信息 ============
+        if (entry.getModule() != null) {
+            builder.setModule(entry.getModule());
+        }
+        if (entry.getOperation() != null) {
+            builder.setOperation(entry.getOperation());
+        }
+
+        // ============ 请求信息 ============
+        if (entry.getRequestUrl() != null) {
+            builder.setRequestUrl(entry.getRequestUrl());
+        }
+        if (entry.getRequestMethod() != null) {
+            builder.setRequestMethod(entry.getRequestMethod());
+        }
+        if (entry.getRequestParams() != null) {
+            builder.setRequestParams(entry.getRequestParams());
+        }
+        if (entry.getResponseTime() != null) {
+            builder.setResponseTime(entry.getResponseTime());
+        }
+
+        // ============ 网络信息 ============
+        if (entry.getIp() != null) {
+            builder.setIp(entry.getIp());
+        }
+        if (entry.getUserAgent() != null) {
+            builder.setUserAgent(entry.getUserAgent());
+        }
+
+        // ============ 扩展信息 ============
+        // 标签列表
+        if (entry.getTags() != null && !entry.getTags().isEmpty()) {
+            builder.addAllTags(entry.getTags());
+        }
+
+        // 扩展字段（google.protobuf.Struct）
+        Struct extra = buildExtraStruct(entry);
+        if (extra.getFieldsCount() > 0) {
+            builder.setExtra(extra);
         }
 
         return builder.build();
+    }
+
+    /**
+     * 构建 extra Struct
+     * 合并 entry.extra 和 entry.context
+     */
+    private Struct buildExtraStruct(LogEntry entry) {
+        Struct.Builder structBuilder = Struct.newBuilder();
+
+        // 1. 首先添加 context 中的内容
+        if (entry.getContext() != null && !entry.getContext().isEmpty()) {
+            Struct contextStruct = LogEntry.mapToStruct(entry.getContext());
+            structBuilder.putAllFields(contextStruct.getFieldsMap());
+        }
+
+        // 2. 然后添加 extra 中的内容（会覆盖同名的 context 字段）
+        if (entry.getExtra() != null && entry.getExtra().getFieldsCount() > 0) {
+            structBuilder.putAllFields(entry.getExtra().getFieldsMap());
+        }
+
+        return structBuilder.build();
     }
 
     /**
@@ -237,8 +315,8 @@ public class GrpcLogSender implements LogSender {
             metadata.put(API_KEY_METADATA_KEY, config.getApiKey());
         }
 
-        metadata.put(TENANT_ID_METADATA_KEY, String.valueOf(config.getTenantId()));
-        metadata.put(SYSTEM_ID_METADATA_KEY, String.valueOf(config.getSystemId()));
+        metadata.put(TENANT_ID_METADATA_KEY, config.getTenantId());
+        metadata.put(SYSTEM_ID_METADATA_KEY, config.getSystemId());
 
         return metadata;
     }

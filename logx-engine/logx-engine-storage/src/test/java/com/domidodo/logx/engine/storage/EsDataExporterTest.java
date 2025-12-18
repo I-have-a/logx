@@ -197,7 +197,7 @@ class EsDataExporterTest {
      */
     @Test
     void testExportPerformance() {
-        String indexName = "logx-logs-company_a-erp_system-2024.12.16";
+        String indexName = "logx-logs-18-64-2010.10.04";
 
         long count = esDataExporter.getIndexDocumentCount(indexName);
         if (count == 0 || count > 100000) {
@@ -220,9 +220,7 @@ class EsDataExporterTest {
         // 测试流式导出
         long start2 = System.currentTimeMillis();
         AtomicLong processed = new AtomicLong(0);
-        esDataExporter.exportIndexWithBatchProcessor(indexName, batch -> {
-            processed.addAndGet(batch.size());
-        });
+        esDataExporter.exportIndexWithBatchProcessor(indexName, batch -> processed.addAndGet(batch.size()));
         long time2 = System.currentTimeMillis() - start2;
 
         System.out.println("流式导出:");
