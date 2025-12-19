@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * LogX 配置属性
@@ -58,6 +60,11 @@ public class LogXProperties {
      */
     private Aspect aspect = new Aspect();
 
+    /**
+     * 用户上下文配置
+     */
+    private UserContext userContext = new UserContext();
+
     @Data
     public static class Gateway {
         /**
@@ -74,6 +81,11 @@ public class LogXProperties {
          * gRPC 模式：端口
          */
         private int port = 9090;
+
+        /**
+         * gRPC 模式：批量传输模式（batch | stream）
+         */
+        private String batchMode = "stream";
 
         /**
          * 连接超时（毫秒）
@@ -135,5 +147,63 @@ public class LogXProperties {
          * 慢请求阈值（毫秒）
          */
         private long slowThreshold = 3000;
+    }
+
+    @Data
+    public static class UserContext {
+        /**
+         * 是否启用用户上下文自动获取
+         */
+        private boolean enabled = true;
+
+        /**
+         * 用户信息获取来源，支持多个：header, session, principal, parameter
+         * 多个来源用逗号分隔，按顺序尝试
+         */
+        private List<String> source = Arrays.asList("header", "session", "principal");
+
+        // ============ 请求头配置 ============
+        /**
+         * 用户ID请求头名称
+         */
+        private String userIdHeader = "X-User-Id";
+
+        /**
+         * 用户名请求头名称
+         */
+        private String userNameHeader = "X-User-Name";
+
+        /**
+         * 租户ID请求头名称
+         */
+        private String tenantIdHeader = "X-Tenant-Id";
+
+        // ============ Session配置 ============
+        /**
+         * 用户ID在Session中的键名
+         */
+        private String userIdSessionKey = "userId";
+
+        /**
+         * 用户名在Session中的键名
+         */
+        private String userNameSessionKey = "userName";
+
+        /**
+         * 租户ID在Session中的键名
+         */
+        private String tenantIdSessionKey = "tenantId";
+
+        // ============ 请求参数配置 ============
+        /**
+         * 用户ID请求参数名称
+         */
+        private String userIdParameter = "userId";
+
+        /**
+         * 自定义用户上下文提供器Bean名称
+         * 如果配置了此项，将使用自定义实现
+         */
+        private String customProviderBeanName;
     }
 }

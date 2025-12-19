@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -240,7 +241,7 @@ public class LogEntry {
      */
     public void addTag(String tag) {
         if (this.tags == null) {
-            this.tags = new java.util.ArrayList<>();
+            this.tags = new ArrayList<>();
         }
         if (!this.tags.contains(tag)) {
             this.tags.add(tag);
@@ -352,7 +353,7 @@ public class LogEntry {
             case STRUCT_VALUE:
                 return structToMap(value.getStructValue());
             case LIST_VALUE:
-                List<Object> list = new java.util.ArrayList<>();
+                List<Object> list = new ArrayList<>();
                 for (Value item : value.getListValue().getValuesList()) {
                     list.add(valueToObject(item));
                 }

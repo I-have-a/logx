@@ -52,6 +52,11 @@ public class LogXConfig {
      */
     private int grpcPort = 9090;
 
+    /**
+     * gRPC 模式：批量传输模式（batch | stream）
+     */
+    private String batchMode = "stream";
+
     // ============ gRPC 高级配置 ============
     /**
      * gRPC 最大入站消息大小（字节）

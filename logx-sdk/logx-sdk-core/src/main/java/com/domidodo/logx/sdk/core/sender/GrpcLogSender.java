@@ -87,7 +87,14 @@ public class GrpcLogSender implements LogSender {
         if (entries == null || entries.isEmpty()) {
             return;
         }
+        if ("stream".equals(config.getBatchMode())) {
+            sendBatchStream(entries);
+        } else {
+            sendBatchHttp(entries);
+        }
+    }
 
+    public void sendBatchHttp(List<LogEntry> entries) {
         try {
             // 构建批量请求
             LogBatchRequest.Builder requestBuilder = LogBatchRequest.newBuilder()

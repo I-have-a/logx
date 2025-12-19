@@ -4,7 +4,7 @@ import com.domidodo.logx.common.enums.AlertLevelEnum;
 import com.domidodo.logx.engine.detection.entity.Alert;
 import com.domidodo.logx.engine.detection.entity.Rule;
 import com.domidodo.logx.engine.detection.mapper.AlertMapper;
-import com.domidodo.logx.engine.detection.rules.RuleEngine;
+import com.domidodo.logx.engine.detection.rules.EnhancedRuleEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class AlertService {
 
     private final AlertMapper alertMapper;
-    private final RuleEngine ruleEngine;
+    private final EnhancedRuleEngine enhancedRuleEngine;
     private final NotificationService notificationService;
 
     /**
@@ -72,7 +72,7 @@ public class AlertService {
         // 告警信息
         alert.setAlertLevel(rule.getAlertLevel());
         alert.setAlertType(rule.getRuleType());
-        alert.setAlertContent(ruleEngine.generateAlertContent(rule, logData));
+        alert.setAlertContent(enhancedRuleEngine.generateAlertContent(rule, logData));
         alert.setTriggerTime(LocalDateTime.now());
 
         // 状态

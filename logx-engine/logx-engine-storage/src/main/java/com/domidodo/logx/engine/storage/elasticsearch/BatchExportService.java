@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,9 +70,7 @@ public class BatchExportService {
 
         // 提交所有任务
         for (ExportTask task : exportTasks) {
-            CompletableFuture<ExportTaskResult> future = CompletableFuture.supplyAsync(() -> {
-                return executeExportTask(task);
-            }, executor);
+            CompletableFuture<ExportTaskResult> future = CompletableFuture.supplyAsync(() -> executeExportTask(task), executor);
             futures.add(future);
         }
 

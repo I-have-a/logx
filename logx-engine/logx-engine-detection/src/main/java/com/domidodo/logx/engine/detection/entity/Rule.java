@@ -48,12 +48,12 @@ public class Rule implements Serializable {
     private String monitorTarget;
 
     /**
-     * 监控指标
+     * 监控指标:"responseTime" / "userId" / "level" 等任意字段
      */
     private String monitorMetric;
 
     /**
-     * 条件操作符：>、<、=、BETWEEN
+     * 条件操作符：">", "<", ">=", "<=", "=", "!=", "contains", "startsWith"
      */
     private String conditionOperator;
 
@@ -83,4 +83,9 @@ public class Rule implements Serializable {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /**
+     * 触发条件字段
+     */
+    private String conditionField;
 }

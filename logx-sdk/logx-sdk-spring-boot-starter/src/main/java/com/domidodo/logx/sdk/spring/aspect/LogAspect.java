@@ -1,8 +1,9 @@
 package com.domidodo.logx.sdk.spring.aspect;
 
-
+import com.domidodo.logx.sdk.spring.context.UserContextProvider;
 import com.domidodo.logx.sdk.spring.properties.LogXProperties;
 import com.domidodo.logx.sdk.core.LogXClient;
+import com.domidodo.logx.sdk.core.model.LogEntry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,8 +18,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+/**
+ * LogX AOP 日志切面
+ * 支持自动获取用户上下文信息
+ */
 @Slf4j
 @Aspect
 @RequiredArgsConstructor
@@ -26,6 +32,7 @@ public class LogAspect {
 
     private final LogXClient logXClient;
     private final LogXProperties properties;
+    private final UserContextProvider userContextProvider;
 
     /**
      * Controller 切入点
@@ -68,20 +75,54 @@ public class LogAspect {
         String className = joinPoint.getTarget().getClass().getName();
         String methodName = method.getName();
 
-        // 构建上下文
-        Map<String, Object> context = new HashMap<>();
-        context.put("type", type);
-        context.put("className", className);
-        context.put("methodName", methodName);
+        // 获取 HTTP 请求
+        HttpServletRequest request = getRequest();
+
+        // 构建日志实体
+        LogEntry.LogEntryBuilder entryBuilder = LogEntry.builder()
+                .module(extractModuleName(className))
+                .operation(type + "." + methodName)
+                .className(className)
+                .methodName(methodName);
+
+        // 获取用户上下文信息
+        if (request != null && properties.getUserContext().isEnabled() && userContextProvider != null) {
+            try {
+                String userId = userContextProvider.getUserId(request);
+                String userName = userContextProvider.getUserName(request);
+                String tenantId = userContextProvider.getTenantId(request);
+
+                if (userId != null) {
+                    entryBuilder.userId(userId);
+                }
+                if (userName != null) {
+                    entryBuilder.userName(userName);
+                }
+                if (tenantId != null) {
+                    entryBuilder.tenantId(tenantId);
+                }
+            } catch (Exception e) {
+                log.debug("Failed to get user context", e);
+            }
+        }
 
         // 获取 HTTP 请求信息
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
-            context.put("uri", request.getRequestURI());
-            context.put("method", request.getMethod());
-            context.put("ip", getClientIp(request));
+        Map<String, Object> context = new HashMap<>();
+        context.put("type", type);
+
+        if (request != null) {
+            String uri = request.getRequestURI();
+            String requestMethod = request.getMethod();
+            String ip = getClientIp(request);
+
+            entryBuilder
+                    .requestUrl(uri)
+                    .requestMethod(requestMethod)
+                    .ip(ip);
+
+            context.put("uri", uri);
+            context.put("method", requestMethod);
+            context.put("ip", ip);
         }
 
         // 记录参数
@@ -95,6 +136,7 @@ public class LogAspect {
         long startTime = System.currentTimeMillis();
         Object result = null;
         boolean success = true;
+        LogEntry logEntry;
 
         try {
             result = joinPoint.proceed();
@@ -102,37 +144,66 @@ public class LogAspect {
         } catch (Throwable e) {
             success = false;
 
-            // 记录异常
-            logXClient.error(
-                    String.format("%s 执行异常: %s.%s", type, className, methodName),
-                    e,
-                    context
-            );
+            // 记录异常日志
+            logEntry = entryBuilder
+                    .level("ERROR")
+                    .message(String.format("%s 执行异常: %s.%s", type, className, methodName))
+                    .context(context)
+                    .build();
+
+            logEntry.setThrowable(e);
+            logXClient.log(logEntry);
 
             throw e;
         } finally {
             long duration = System.currentTimeMillis() - startTime;
             context.put("duration", duration + "ms");
 
+            // 设置响应时间
+            entryBuilder.responseTime(duration);
+
             // 记录结果
             if (success) {
                 if (properties.getAspect().isLogResult() && result != null) {
-                    context.put("result", result.toString());
+                    String resultStr = result.toString();
+                    context.put("result", resultStr.length() > 200 ?
+                            resultStr.substring(0, 200) + "..." : resultStr);
                 }
 
                 // 慢请求告警
                 if (duration > properties.getAspect().getSlowThreshold()) {
-                    logXClient.warn(
-                            String.format("%s 慢请求: %s.%s 耗时 %dms", type, className, methodName, duration),
-                            context
-                    );
+                    logEntry = entryBuilder
+                            .level("WARN")
+                            .message(String.format("%s 慢请求: %s.%s 耗时 %dms",
+                                    type, className, methodName, duration))
+                            .context(context)
+                            .build();
+
+                    // 添加慢请求标签
+                    logEntry.setTags(List.of("slow-request", type.toLowerCase()));
                 } else {
-                    logXClient.info(
-                            String.format("%s 执行: %s.%s", type, className, methodName),
-                            context
-                    );
+                    logEntry = entryBuilder
+                            .level("INFO")
+                            .message(String.format("%s 执行: %s.%s", type, className, methodName))
+                            .context(context)
+                            .build();
                 }
+
+                logXClient.log(logEntry);
             }
+        }
+    }
+
+    /**
+     * 获取当前HTTP请求
+     */
+    private HttpServletRequest getRequest() {
+        try {
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            return attributes != null ? attributes.getRequest() : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -145,8 +216,20 @@ public class LogAspect {
             ip = request.getHeader("X-Real-IP");
         }
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
+
+        // 处理多级代理的情况
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+
         return ip;
     }
 
@@ -161,7 +244,13 @@ public class LogAspect {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];
-            if (arg != null) {
+
+            // 跳过HttpServletRequest等不需要记录的参数
+            if (arg instanceof HttpServletRequest ||
+                arg instanceof jakarta.servlet.http.HttpServletResponse ||
+                arg instanceof org.springframework.ui.Model) {
+                sb.append(arg.getClass().getSimpleName());
+            } else if (arg != null) {
                 sb.append(arg.getClass().getSimpleName()).append(":");
                 // 避免输出过长的参数
                 String str = arg.toString();
@@ -173,11 +262,35 @@ public class LogAspect {
             } else {
                 sb.append("null");
             }
+
             if (i < args.length - 1) {
                 sb.append(", ");
             }
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    /**
+     * 从类名提取模块名
+     */
+    private String extractModuleName(String className) {
+        // 尝试从包名提取模块名
+        // 例如: com.example.user.controller.UserController -> user
+        String[] parts = className.split("\\.");
+        if (parts.length >= 3) {
+            // 倒数第二个部分通常是模块名或层级名
+            String modulePart = parts[parts.length - 2];
+            // 如果是 controller, service 等，再往前找一个
+            if (modulePart.equalsIgnoreCase("controller") ||
+                modulePart.equalsIgnoreCase("service") ||
+                modulePart.equalsIgnoreCase("api")) {
+                if (parts.length >= 4) {
+                    return parts[parts.length - 3];
+                }
+            }
+            return modulePart;
+        }
+        return "unknown";
     }
 }

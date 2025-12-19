@@ -30,12 +30,13 @@ class EsDataExporterTest {
     @Autowired
     private BatchExportService batchExportService;
 
+    String indexName = "logx-logs-yourtenantid-yoursystemid-2025.12.18";
+
     /**
      * 测试基础导出功能
      */
     @Test
     void testExportIndexToJson() {
-        String indexName = "logx-logs-company_a-erp_system-2024.12.16";
 
         // 获取文档数量
         long count = esDataExporter.getIndexDocumentCount(indexName);
@@ -60,7 +61,6 @@ class EsDataExporterTest {
      */
     @Test
     void testExportWithProgress() {
-        String indexName = "logx-logs-company_a-erp_system-2024.12.16";
 
         long count = esDataExporter.getIndexDocumentCount(indexName);
         if (count == 0) {
@@ -81,7 +81,6 @@ class EsDataExporterTest {
      */
     @Test
     void testExportWithBatchProcessor() {
-        String indexName = "logx-logs-company_a-erp_system-2024.12.16";
 
         AtomicLong totalProcessed = new AtomicLong(0);
         AtomicLong batchCount = new AtomicLong(0);
@@ -102,7 +101,6 @@ class EsDataExporterTest {
      */
     @Test
     void testEstimateExportSize() {
-        String indexName = "logx-logs-company_a-erp_system-2024.12.16";
 
         long estimatedSize = chunkedDataExporter.estimateExportSize(indexName);
         boolean needsChunked = chunkedDataExporter.needsChunkedExport(indexName);
@@ -119,7 +117,6 @@ class EsDataExporterTest {
      */
     @Test
     void testChunkedExport() {
-        String indexName = "logx-logs-company_a-erp_system-2024.11.01";
         String tenantId = "company_a";
         String systemId = "erp_system";
         LocalDate date = LocalDate.of(2024, 11, 1);
@@ -197,8 +194,6 @@ class EsDataExporterTest {
      */
     @Test
     void testExportPerformance() {
-        String indexName = "logx-logs-18-64-2010.10.04";
-
         long count = esDataExporter.getIndexDocumentCount(indexName);
         if (count == 0 || count > 100000) {
             System.out.println("跳过性能测试");

@@ -75,7 +75,7 @@ logx:
 
   # 批量配置
   batch:
-    max-size: 100  # 单次最大日志条数
+    max-size: 1000  # 单次最大日志条数
 
 # 日志配置
 logging:

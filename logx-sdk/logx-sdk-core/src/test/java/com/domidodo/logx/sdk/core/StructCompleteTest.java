@@ -3,7 +3,6 @@ package com.domidodo.logx.sdk.core;
 import com.domidodo.logx.sdk.core.model.LogEntry;
 import com.google.protobuf.Struct;
 import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
@@ -21,7 +20,8 @@ public class StructCompleteTest {
             .tenantId("your_tenant_id")
             .systemId("your_system_id")
             .apiKey("your_api_key")
-            .gatewayUrl("http://localhost:10240")
+            .mode("grpc")
+            .grpcEndpoint("localhost", 9090)
             .build();
 
     @BeforeAll
@@ -371,7 +371,7 @@ public class StructCompleteTest {
     public void test10_Performance() {
         System.out.println("\n--- 测试10：性能测试 ---");
 
-        int count = 100;
+        int count = 100000;
         long startTime = System.currentTimeMillis();
 
         for (int i = 0; i < count; i++) {
@@ -459,21 +459,19 @@ public class StructCompleteTest {
             // 模拟异常
             int result = 10 / 0;
         } catch (Exception e) {
-            for (int i = 0; i < 100000; i++) {
-                // 记录异常，同时包含 extra
-                Map<String, Object> extra = Map.of(
-                        "operation", "divide",
-                        "dividend", 10,
-                        "divisor", 0,
-                        "attemptedAt", System.currentTimeMillis()
-                );
+            // 记录异常，同时包含 extra
+            Map<String, Object> extra = Map.of(
+                    "operation", "divide",
+                    "dividend", 10,
+                    "divisor", 0,
+                    "attemptedAt", System.currentTimeMillis()
+            );
 
-                logXClient.error("除零错误", e, extra);
+            logXClient.error("除零错误", e, extra);
 
-                System.out.println("✅ 异常日志记录成功");
-                System.out.println("   异常类型: " + e.getClass().getSimpleName());
-                System.out.println("   包含 extra: 是");
-            }
+            System.out.println("✅ 异常日志记录成功");
+            System.out.println("   异常类型: " + e.getClass().getSimpleName());
+            System.out.println("   包含 extra: 是");
         }
     }
 }

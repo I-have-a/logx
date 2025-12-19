@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 日志 Kafka 消费者（完全修复版）
+ * 日志 Kafka 消费者
  */
 @Slf4j
 @Component
@@ -81,7 +81,7 @@ public class LogKafkaConsumer {
                 return;
             }
 
-            // 2. 批量写入 Elasticsearch（带重试）
+            // 2. 批量写入 Elasticsearch
             boolean writeSuccess = writeWithRetry(parseResult.validLogs);
 
             if (writeSuccess) {

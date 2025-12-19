@@ -8,6 +8,7 @@ import com.domidodo.logx.sdk.core.sender.HttpLogSender;
 import com.domidodo.logx.sdk.core.sender.LogSender;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -390,6 +391,21 @@ public class LogXClient {
 
         public Builder bufferSize(int size) {
             config.setBufferSize(size);
+            return this;
+        }
+
+        public Builder batchMode(String match) {
+            config.setBatchMode(match);
+            return this;
+        }
+
+        public Builder flushInterval(Duration interval) {
+            config.setFlushInterval(interval);
+            return this;
+        }
+
+        public Builder connectTimeout(int timeout) {
+            config.setConnectTimeout(timeout);
             return this;
         }
 

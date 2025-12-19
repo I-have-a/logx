@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.domidodo.logx.common.util.JsonUtil;
@@ -18,16 +19,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 规则执行器
- * 消费Kafka日志，执行规则检测
+ * 规则执行器（使用增强规则引擎）
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RuleExecutor {
+public class UpdatedRuleExecutor {
 
     private final RuleMapper ruleMapper;
-    private final RuleEngine ruleEngine;
+    private final EnhancedRuleEngine enhancedRuleEngine; // 使用增强版引擎
+    private final RuleStateManager stateManager; // 状态管理器
     private final AlertService alertService;
 
     /**
@@ -122,8 +123,8 @@ public class RuleExecutor {
                 return false;
             }
 
-            // 2. 评估规则
-            return ruleEngine.evaluate(rule, logData);
+            // 2. 使用增强规则引擎评估
+            return enhancedRuleEngine.evaluate(rule, logData);
 
         } catch (Exception e) {
             log.error("Error matching rule: {}", rule.getRuleName(), e);
@@ -140,25 +141,56 @@ public class RuleExecutor {
             return true; // 不限制监控对象
         }
 
+        // 支持多种维度的监控对象
+        // 格式：userId:xxx / module:xxx / ip:xxx / operation:xxx / /api/xxx
+
+        // 检查用户ID
+        if (monitorTarget.startsWith("userId:")) {
+            String targetUserId = monitorTarget.substring(7);
+            String userId = (String) logData.get("userId");
+            return targetUserId.equals(userId);
+        }
+
         // 检查模块
+        if (monitorTarget.startsWith("module:")) {
+            String targetModule = monitorTarget.substring(7);
+            String module = (String) logData.get("module");
+            return module != null && module.contains(targetModule);
+        }
+
+        // 检查IP
+        if (monitorTarget.startsWith("ip:")) {
+            String targetIp = monitorTarget.substring(3);
+            String ip = (String) logData.get("ip");
+            return targetIp.equals(ip);
+        }
+
+        // 检查操作
+        if (monitorTarget.startsWith("operation:")) {
+            String targetOperation = monitorTarget.substring(10);
+            String operation = (String) logData.get("operation");
+            return operation != null && operation.contains(targetOperation);
+        }
+
+        // 检查URL（传统方式，兼容老代码）
+        String requestUrl = (String) logData.get("requestUrl");
+        if (requestUrl != null && requestUrl.contains(monitorTarget)) {
+            return true;
+        }
+
+        // 检查模块（传统方式）
         String module = (String) logData.get("module");
         if (module != null && module.contains(monitorTarget)) {
             return true;
         }
 
-        // 检查操作
+        // 检查操作（传统方式）
         String operation = (String) logData.get("operation");
-        if (operation != null && operation.contains(monitorTarget)) {
-            return true;
-        }
-
-        // 检查URL
-        String requestUrl = (String) logData.get("requestUrl");
-        return requestUrl != null && requestUrl.contains(monitorTarget);
+        return operation != null && operation.contains(monitorTarget);
     }
 
     /**
-     * 加载所有启用的规则
+     * 加载所有可用的规则
      */
     public void loadRules() {
         try {
@@ -180,9 +212,22 @@ public class RuleExecutor {
     /**
      * 刷新规则缓存（定时任务）
      */
-    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000) // 每分钟刷新一次
+    @Scheduled(fixedRate = 60000) // 每分钟刷新一次
     public void refreshRules() {
         loadRules();
+    }
+
+    /**
+     * 清理过期状态（定时任务）
+     */
+    @Scheduled(fixedRate = 300000) // 每5分钟清理一次
+    public void cleanupExpiredStates() {
+        try {
+            stateManager.cleanupExpiredStates();
+            log.debug("Cleaned up expired rule states");
+        } catch (Exception e) {
+            log.error("Failed to cleanup expired states", e);
+        }
     }
 
     /**
@@ -192,5 +237,21 @@ public class RuleExecutor {
         String cacheKey = tenantId + ":" + systemId;
         ruleCache.remove(cacheKey);
         log.info("Cleared rule cache for: {}", cacheKey);
+    }
+
+    /**
+     * 清除指定规则的状态
+     */
+    public void clearRuleState(Long ruleId) {
+        // 清理该规则相关的所有状态
+        stateManager.continuousStateMap.keySet().stream()
+                .filter(key -> key.startsWith(ruleId + ":"))
+                .forEach(stateManager::resetContinuousState);
+
+        stateManager.batchOperationMap.keySet().stream()
+                .filter(key -> key.startsWith(ruleId + ":"))
+                .forEach(stateManager::resetBatchOperationState);
+
+        log.info("Cleared state for rule: {}", ruleId);
     }
 }
