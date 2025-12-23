@@ -54,7 +54,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
 
             // 1. 全局限流检查
             if (!checkGlobalLimit()) {
-                log.warn("Global rate limit exceeded");
+                log.warn("超出全局速率限制");
                 call.close(Status.RESOURCE_EXHAUSTED
                         .withDescription("系统繁忙，请稍后重试"), headers);
                 return new ServerCall.Listener<>() {
@@ -63,7 +63,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
 
             // 2. 租户限流检查
             if (tenantId != null && !checkTenantLimit(tenantId)) {
-                log.warn("Tenant rate limit exceeded: tenantId={}", tenantId);
+                log.warn("超出租户速率限制：tenantId={}", tenantId);
                 call.close(Status.RESOURCE_EXHAUSTED
                         .withDescription("租户请求过于频繁，请稍后重试"), headers);
                 return new ServerCall.Listener<>() {
@@ -72,7 +72,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
 
             // 3. 系统限流检查
             if (systemId != null && !checkSystemLimit(tenantId, systemId)) {
-                log.warn("System rate limit exceeded: tenantId={}, systemId={}", tenantId, systemId);
+                log.warn("超出系统速率限制：tenantId={}，systemId={}", tenantId, systemId);
                 call.close(Status.RESOURCE_EXHAUSTED
                         .withDescription("系统请求过于频繁，请稍后重试"), headers);
                 return new ServerCall.Listener<>() {
@@ -83,7 +83,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
             return next.startCall(call, headers);
 
         } catch (Exception e) {
-            log.error("Rate limit check error", e);
+            log.error("速率限制检查错误", e);
             // 异常情况放行，避免服务不可用
             return next.startCall(call, headers);
         }

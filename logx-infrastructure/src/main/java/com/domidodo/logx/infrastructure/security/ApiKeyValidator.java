@@ -45,13 +45,13 @@ public class ApiKeyValidator {
         try {
             // 1. 格式验证
             if (!isValidFormat(apiKey)) {
-                log.warn("Invalid API key format: {}", maskApiKey(apiKey));
+                log.warn("无效的API密钥格式：{}", maskApiKey(apiKey));
                 return ApiKeyValidationResult.invalid("API密钥格式不正确");
             }
 
             // 2. 黑名单检查
             if (isBlacklisted(apiKey)) {
-                log.warn("Blacklisted API key used: {}", maskApiKey(apiKey));
+                log.warn("已使用列入黑名单的API密钥：｛｝", maskApiKey(apiKey));
                 return ApiKeyValidationResult.invalid("API密钥已被禁用");
             }
 
@@ -76,7 +76,7 @@ public class ApiKeyValidator {
             return ApiKeyValidationResult.valid(info);
 
         } catch (Exception e) {
-            log.error("API key validation error", e);
+            log.error("API密钥验证错误", e);
             return ApiKeyValidationResult.invalid("验证失败");
         }
     }
@@ -96,7 +96,7 @@ public class ApiKeyValidator {
             long timeDiff = Math.abs(currentTime - timestamp);
 
             if (timeDiff > 300000) { // 5分钟有效期
-                log.warn("Request timestamp expired: diff={}ms", timeDiff);
+                log.warn("请求时间戳已过期：diff=｛｝ms", timeDiff);
                 return false;
             }
 
@@ -108,13 +108,13 @@ public class ApiKeyValidator {
             );
 
             if (!valid) {
-                log.warn("Invalid signature for API key: {}", maskApiKey(apiKey));
+                log.warn("API密钥的签名无效：｛｝", maskApiKey(apiKey));
             }
 
             return valid;
 
         } catch (Exception e) {
-            log.error("Signature validation error", e);
+            log.error("签名验证错误", e);
             return false;
         }
     }
@@ -129,7 +129,7 @@ public class ApiKeyValidator {
         // 清除缓存
         invalidateCache(apiKey);
 
-        log.warn("API key blacklisted: {} - {}", maskApiKey(apiKey), reason);
+        log.warn("API密钥被列入黑名单：｛｝-｛｝", maskApiKey(apiKey), reason);
     }
 
     /**
@@ -175,7 +175,7 @@ public class ApiKeyValidator {
             byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hmacData);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate signature", e);
+            throw new RuntimeException("生成签名失败", e);
         }
     }
 
@@ -188,7 +188,7 @@ public class ApiKeyValidator {
             byte[] hash = digest.digest(apiKey.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to hash API key", e);
+            throw new RuntimeException("无法哈希API密钥", e);
         }
     }
 

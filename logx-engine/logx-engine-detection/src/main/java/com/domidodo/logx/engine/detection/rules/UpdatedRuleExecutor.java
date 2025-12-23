@@ -42,7 +42,7 @@ public class UpdatedRuleExecutor {
     @PostConstruct
     public void init() {
         loadRules();
-        log.info("RuleExecutor initialized, loaded {} tenant-system rules", ruleCache.size());
+        log.info("RuleExecutor已初始化，加载了{}个租户系统规则", ruleCache.size());
     }
 
     /**
@@ -98,17 +98,17 @@ public class UpdatedRuleExecutor {
                     }
 
                 } catch (Exception e) {
-                    log.error("Error processing log message", e);
+                    log.error("处理日志消息时出错", e);
                 }
             }
 
             // 5. 手动提交offset
             acknowledgment.acknowledge();
 
-            log.debug("Processed {} logs, {} matched rules", totalCount, matchedCount);
+            log.debug("已处理{}条日志，{}条匹配规则", totalCount, matchedCount);
 
         } catch (Exception e) {
-            log.error("Error processing log batch", e);
+            log.error("处理日志批处理时出错", e);
             // 不提交offset，会重新消费
         }
     }
@@ -127,7 +127,7 @@ public class UpdatedRuleExecutor {
             return enhancedRuleEngine.evaluate(rule, logData);
 
         } catch (Exception e) {
-            log.error("Error matching rule: {}", rule.getRuleName(), e);
+            log.error("匹配规则时出错：{}", rule.getRuleName(), e);
             return false;
         }
     }
@@ -203,9 +203,9 @@ public class UpdatedRuleExecutor {
                 ruleCache.computeIfAbsent(cacheKey, k -> new java.util.ArrayList<>()).add(rule);
             }
 
-            log.info("Loaded {} rules from database", allRules.size());
+            log.info("已从数据库加载{}条规则", allRules.size());
         } catch (Exception e) {
-            log.error("Failed to load rules", e);
+            log.error("未能加载规则", e);
         }
     }
 
@@ -224,9 +224,9 @@ public class UpdatedRuleExecutor {
     public void cleanupExpiredStates() {
         try {
             stateManager.cleanupExpiredStates();
-            log.debug("Cleaned up expired rule states");
+            log.debug("已清理过期的规则状态");
         } catch (Exception e) {
-            log.error("Failed to cleanup expired states", e);
+            log.error("未能清理过期状态", e);
         }
     }
 
@@ -236,7 +236,7 @@ public class UpdatedRuleExecutor {
     public void clearCache(String tenantId, String systemId) {
         String cacheKey = tenantId + ":" + systemId;
         ruleCache.remove(cacheKey);
-        log.info("Cleared rule cache for: {}", cacheKey);
+        log.info("已清除{}的规则缓存", cacheKey);
     }
 
     /**
@@ -252,6 +252,6 @@ public class UpdatedRuleExecutor {
                 .filter(key -> key.startsWith(ruleId + ":"))
                 .forEach(stateManager::resetBatchOperationState);
 
-        log.info("Cleared state for rule: {}", ruleId);
+        log.info("规则的已清除状态：{}", ruleId);
     }
 }

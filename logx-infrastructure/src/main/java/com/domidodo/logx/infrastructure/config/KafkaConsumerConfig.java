@@ -63,7 +63,7 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500); // 最大等待500ms
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // 手动提交offset
 
-        log.info("Kafka Consumer initialized with servers: {}, groupId: {}", bootstrapServers, groupId);
+        log.info("Kafka Consumer已初始化服务器：{}，组ID:{}", bootstrapServers, groupId);
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -88,7 +88,7 @@ public class KafkaConsumerConfig {
         // 错误处理
         factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
 
-        log.info("KafkaListenerContainerFactory configured with concurrency: {}", concurrency);
+        log.info("配置了并发性的KafkaListenerContainerFactory：{}", concurrency);
         return factory;
     }
 }

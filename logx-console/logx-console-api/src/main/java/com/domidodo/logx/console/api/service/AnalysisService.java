@@ -81,7 +81,7 @@ public class AnalysisService {
                     stats.getAvgResponseTime() - stats.getYesterdayAvgResponseTime());
 
         } catch (Exception e) {
-            log.error("Failed to get today statistics", e);
+            log.error("未能获取今天的统计数据", e);
         }
 
         return stats;
@@ -186,7 +186,7 @@ public class AnalysisService {
             }
 
         } catch (Exception e) {
-            log.error("Failed to get module statistics", e);
+            log.error("无法获取模块统计信息", e);
         }
 
         return result;
@@ -294,7 +294,7 @@ public class AnalysisService {
             ));
 
         } catch (Exception e) {
-            log.error("Failed to get hotspot analysis", e);
+            log.error("获取热点分析失败", e);
         }
 
         return result;
@@ -375,7 +375,7 @@ public class AnalysisService {
             }
 
         } catch (Exception e) {
-            log.error("Failed to get statistics data", e);
+            log.error("获取统计数据失败", e);
         }
 
         return data;

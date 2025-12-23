@@ -50,11 +50,11 @@ public class AlertService {
                 notificationService.addToQueue(alert);
             }
 
-            log.info("Alert triggered: ruleId={}, tenantId={}, systemId={}, level={}",
+            log.info("已触发警报：ruleId={}，tenantId={}，systemId={},level={}",
                     rule.getId(), rule.getTenantId(), rule.getSystemId(), rule.getAlertLevel());
 
         } catch (Exception e) {
-            log.error("Failed to trigger alert: rule={}", rule.getRuleName(), e);
+            log.error("未能触发警报：规则={}", rule.getRuleName(), e);
         }
     }
 
@@ -88,7 +88,7 @@ public class AlertService {
     public void handleAlert(Long alertId, String handleUser, String handleRemark) {
         Alert alert = alertMapper.selectById(alertId);
         if (alert == null) {
-            log.warn("Alert not found: id={}", alertId);
+            log.warn("未找到警报：id={}", alertId);
             return;
         }
 
@@ -98,7 +98,7 @@ public class AlertService {
         alert.setHandleRemark(handleRemark);
 
         alertMapper.updateById(alert);
-        log.info("Alert handled: id={}, user={}", alertId, handleUser);
+        log.info("已处理警报：id={}，用户={}", alertId, handleUser);
     }
 
     /**
@@ -135,6 +135,6 @@ public class AlertService {
                 alertMapper.updateById(alert);
             }
         }
-        log.info("Marked {} alerts as read", alertIds.size());
+        log.info("将{}个警报标记为已读", alertIds.size());
     }
 }

@@ -66,7 +66,7 @@ public class KafkaProducerConfig {
         // 幂等性配置（防止重复）
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
-        log.info("Kafka Producer initialized with servers: {}", bootstrapServers);
+        log.info("Kafka Producer已用服务器初始化：{}", bootstrapServers);
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 

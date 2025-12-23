@@ -49,7 +49,7 @@ public class LogIngestService {
             } catch (Exception e) {
                 failCount++;
                 errors.add("Index " + i + ": " + e.getMessage());
-                log.error("Failed to ingest log at index {}", i, e);
+                log.error("无法摄取index{}处的日志", i, e);
             }
         }
 

@@ -91,7 +91,7 @@ public class RedisConfig {
                 .transactionAware()
                 .build();
 
-        log.info("CacheManager initialized with default TTL: 1 hour");
+        log.info("CacheManager已初始化为默认TTL:1小时");
         return cacheManager;
     }
 }

@@ -39,7 +39,7 @@ public class AnalysisController {
             StatisticsDTO stats = analysisService.getTodayStatistics(tenantId, systemId);
             return Result.success(stats);
         } catch (Exception e) {
-            log.error("Get today statistics failed", e);
+            log.error("获取今天的统计数据失败", e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -61,7 +61,7 @@ public class AnalysisController {
                     tenantId, systemId, startTime, endTime, sortBy, limit);
             return Result.success(stats);
         } catch (Exception e) {
-            log.error("Get module statistics failed", e);
+            log.error("获取模块统计信息失败", e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -81,7 +81,7 @@ public class AnalysisController {
                     tenantId, systemId, startTime, endTime);
             return Result.success(hotspots);
         } catch (Exception e) {
-            log.error("Get hotspot analysis failed", e);
+            log.error("获取热点分析失败", e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }

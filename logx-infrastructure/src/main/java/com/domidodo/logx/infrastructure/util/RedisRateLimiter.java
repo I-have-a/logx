@@ -64,7 +64,7 @@ public class RedisRateLimiter {
             );
             return result != null && result == 1L;
         } catch (Exception e) {
-            log.error("Rate limiter error for key: {}, allowing request", key, e);
+            log.error("键{}的速率限制器错误，允许请求", key, e);
             return true; // 异常情况放行，避免服务不可用
         }
     }
@@ -82,7 +82,7 @@ public class RedisRateLimiter {
             long current = value != null ? Long.parseLong(value.toString()) : 0;
             return Math.max(0, limit - current);
         } catch (Exception e) {
-            log.error("Get remaining quota error for key: {}", key, e);
+            log.error("获取密钥的剩余配额错误：{}", key, e);
             return limit;
         }
     }
@@ -98,7 +98,7 @@ public class RedisRateLimiter {
             Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
             return ttl != null && ttl > 0 ? ttl : 0;
         } catch (Exception e) {
-            log.error("Get TTL error for key: {}", key, e);
+            log.error("获取密钥的TTL错误：{}", key, e);
             return 0;
         }
     }
@@ -111,9 +111,9 @@ public class RedisRateLimiter {
     public void reset(String key) {
         try {
             redisTemplate.delete(key);
-            log.info("Reset rate limiter for key: {}", key);
+            log.info("重置密钥的速率限制器：{}", key);
         } catch (Exception e) {
-            log.error("Reset rate limiter error for key: {}", key, e);
+            log.error("密钥重置速率限制器错误：{}", key, e);
         }
     }
 }

@@ -64,14 +64,14 @@ public class StandaloneApplication {
                     访问地址:
                         本地:    %s://localhost:%s%s
                         外部:    %s://%s:%s%s
-                    
+                
                     集成模块:
                         ✓ HTTP Gateway    - 日志接收网关
                         ✓ Processor       - 日志处理引擎
                         ✓ Storage         - 存储管理
                         ✓ Detection       - 检测告警
                         ✓ Console API     - 管理控制台
-                    
+                
                     API文档:     %s://localhost:%s%s/doc.html
                     健康检查:    %s://localhost:%s%s/actuator/health
                 ----------------------------------------------------------

@@ -121,7 +121,7 @@ public class RuleStateManager {
                 entry.getValue().lastOperationTime.isBefore(expireTime)
         );
 
-        log.debug("Cleaned up expired states. Remaining continuous: {}, batch: {}",
+        log.debug("清理过期状态。剩余 continuous: {}, batch: {}",
                 continuousStateMap.size(), batchOperationMap.size());
     }
 

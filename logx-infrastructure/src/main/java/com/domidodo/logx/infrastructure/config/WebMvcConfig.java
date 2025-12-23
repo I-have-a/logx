@@ -33,7 +33,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/doc.html",
                         "/favicon.ico"
                 );
-        log.info("TenantInterceptor registered");
+        log.info("租户拦截器已注册");
     }
 
     /**
@@ -47,6 +47,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
-        log.info("CORS configuration applied");
+        log.info("已应用CORS配置");
     }
 }

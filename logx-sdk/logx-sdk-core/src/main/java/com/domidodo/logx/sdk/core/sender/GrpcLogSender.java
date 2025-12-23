@@ -29,11 +29,11 @@ public class GrpcLogSender implements LogSender {
      * Metadata Keys
      */
     private static final Metadata.Key<String> API_KEY_METADATA_KEY =
-            Metadata.Key.of("x-api-key", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-Api-Key", Metadata.ASCII_STRING_MARSHALLER);
     private static final Metadata.Key<String> TENANT_ID_METADATA_KEY =
-            Metadata.Key.of("x-tenant-id", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-Tenant-Id", Metadata.ASCII_STRING_MARSHALLER);
     private static final Metadata.Key<String> SYSTEM_ID_METADATA_KEY =
-            Metadata.Key.of("x-system-id", Metadata.ASCII_STRING_MARSHALLER);
+            Metadata.Key.of("X-System-Id", Metadata.ASCII_STRING_MARSHALLER);
 
     public GrpcLogSender(LogXConfig config) {
         this.config = config;
@@ -334,9 +334,9 @@ public class GrpcLogSender implements LogSender {
     public void shutdown() {
         try {
             channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-            log.info("gRPC channel closed");
+            log.info("gRPC通道已关闭");
         } catch (InterruptedException e) {
-            log.error("Error shutting down gRPC channel", e);
+            log.error("关闭gRPC通道时出错", e);
             Thread.currentThread().interrupt();
         }
     }

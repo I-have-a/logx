@@ -35,7 +35,7 @@ public class NotificationService {
      */
     public void sendImmediate(Alert alert) {
         try {
-            log.info("Sending immediate notification for alert: id={}, level={}",
+            log.info("正在发送警报的即时通知：id={}，级别={}",
                     alert.getId(), alert.getAlertLevel());
 
             // TODO: 实现实际的通知发送
@@ -49,7 +49,7 @@ public class NotificationService {
             sendWebhook(alert);
 
         } catch (Exception e) {
-            log.error("Failed to send immediate notification", e);
+            log.error("未能立即发送通知", e);
         }
     }
 
@@ -64,10 +64,10 @@ public class NotificationService {
             String key = alert.getTenantId() + ":" + alert.getAlertLevel();
             alertCounter.merge(key, 1, Integer::sum);
 
-            log.debug("Alert added to queue: id={}, queue_size={}",
+            log.debug("已将警报添加到队列：id={}，queue_size={}",
                     alert.getId(), pendingQueue.size());
         } catch (Exception e) {
-            log.error("Failed to add alert to queue", e);
+            log.error("向队列添加警报失败", e);
         }
     }
 
@@ -78,7 +78,7 @@ public class NotificationService {
     public void sendBatchNotifications() {
         try {
             if (pendingQueue.isEmpty()) {
-                log.debug("No pending alerts to send");
+                log.debug("没有待发送的警报");
                 return;
             }
 
@@ -89,7 +89,7 @@ public class NotificationService {
                 return;
             }
 
-            log.info("Sending batch notifications: count={}", alerts.size());
+            log.info("发送批处理通知：计数={}", alerts.size());
 
             // 按租户分组
             Map<String, List<Alert>> groupedAlerts = groupByTenant(alerts);
@@ -103,7 +103,7 @@ public class NotificationService {
             alertCounter.clear();
 
         } catch (Exception e) {
-            log.error("Failed to send batch notifications", e);
+            log.error("发送批量通知失败", e);
         }
     }
 
@@ -123,7 +123,7 @@ public class NotificationService {
      */
     private void sendSummaryNotification(String tenantId, List<Alert> alerts) {
         try {
-            log.info("Sending summary notification to tenant: {}, count={}",
+            log.info("正在向租户发送摘要通知：{}，计数={}",
                     tenantId, alerts.size());
 
             // TODO: 实现实际的汇总通知
@@ -152,10 +152,10 @@ public class NotificationService {
             summary.append("详情请登录控制台查看。");
 
             // 模拟发送邮件
-            log.info("Summary notification content:\n{}", summary);
+            log.info("摘要通知内容：\n{}", summary);
 
         } catch (Exception e) {
-            log.error("Failed to send summary notification", e);
+            log.error("发送摘要通知失败", e);
         }
     }
 
@@ -163,7 +163,7 @@ public class NotificationService {
      * 发送邮件（TODO: 实现实际的邮件发送）
      */
     private void sendEmail(Alert alert) {
-        log.info("Sending email notification: alertId={}", alert.getId());
+        log.info("发送电子邮件通知：alertId={}", alert.getId());
         // TODO: 集成邮件服务（JavaMail）
     }
 
@@ -171,7 +171,7 @@ public class NotificationService {
      * 发送短信（TODO: 实现实际的短信发送）
      */
     private void sendSms(Alert alert) {
-        log.info("Sending SMS notification: alertId={}", alert.getId());
+        log.info("正在发送短信通知：alertId={}", alert.getId());
         // TODO: 集成短信服务（阿里云/腾讯云）
     }
 
@@ -179,7 +179,7 @@ public class NotificationService {
      * 发送Webhook（TODO: 实现实际的Webhook发送）
      */
     private void sendWebhook(Alert alert) {
-        log.info("Sending webhook notification: alertId={}", alert.getId());
+        log.info("正在发送webhook通知：alertId={}", alert.getId());
         // TODO: 实现Webhook调用（企业微信/钉钉/飞书）
     }
 

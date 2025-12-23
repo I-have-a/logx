@@ -93,7 +93,7 @@ public class RuleController {
             return Result.success(result);
 
         } catch (Exception e) {
-            log.error("List rules failed", e);
+            log.error("获取列表规则失败", e);
             return Result.error("查询失败");  // 不泄露详细错误
         }
     }
@@ -125,7 +125,7 @@ public class RuleController {
             return Result.success(rule);
 
         } catch (Exception e) {
-            log.error("Get rule failed: id={}", id, e);
+            log.error("获取规则失败：id={}", id, e);
             return Result.error("查询失败");
         }
     }
@@ -157,7 +157,7 @@ public class RuleController {
             return Result.success(rules);
 
         } catch (Exception e) {
-            log.error("Get enabled rules failed", e);
+            log.error("获取启用规则失败", e);
             return Result.error("查询失败");
         }
     }
@@ -204,13 +204,13 @@ public class RuleController {
 
             ruleMapper.insert(rule);
 
-            log.info("Rule created: id={}, name={}, tenant={}",
+            log.info("已创建规则：id={}，name={}、tenant={}",
                     rule.getId(), rule.getRuleName(), rule.getTenantId());
 
             return Result.success(rule);
 
         } catch (Exception e) {
-            log.error("Create rule failed", e);
+            log.error("创建规则失败", e);
             return Result.error("创建失败");
         }
     }
@@ -259,12 +259,12 @@ public class RuleController {
 
             ruleMapper.updateById(rule);
 
-            log.info("Rule updated: id={}, tenant={}", id, existing.getTenantId());
+            log.info("规则已更新：id={}，租户={}", id, existing.getTenantId());
 
             return Result.success(rule);
 
         } catch (Exception e) {
-            log.error("Update rule failed: id={}", id, e);
+            log.error("更新规则失败：id={}", id, e);
             return Result.error("更新失败");
         }
     }
@@ -297,12 +297,12 @@ public class RuleController {
             existing.setStatus(0);
             ruleMapper.updateById(existing);
 
-            log.info("Rule deleted: id={}, tenant={}", id, existing.getTenantId());
+            log.info("已删除规则：id={}，租户={}", id, existing.getTenantId());
 
             return Result.success();
 
         } catch (Exception e) {
-            log.error("Delete rule failed: id={}", id, e);
+            log.error("删除规则失败：id={}", id, e);
             return Result.error("删除失败");
         }
     }
@@ -339,13 +339,13 @@ public class RuleController {
             rule.setStatus(status);
             ruleMapper.updateById(rule);
 
-            log.info("Rule status updated: id={}, status={}, tenant={}",
+            log.info("规则状态已更新：id={}，状态={}、租户={}",
                     id, status, rule.getTenantId());
 
             return Result.success();
 
         } catch (Exception e) {
-            log.error("Update rule status failed: id={}", id, e);
+            log.error("更新规则状态失败：id={}", id, e);
             return Result.error("更新失败");
         }
     }

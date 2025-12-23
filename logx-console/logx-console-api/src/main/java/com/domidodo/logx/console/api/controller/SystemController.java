@@ -34,7 +34,7 @@ public class SystemController {
             PageResult<SystemDTO> result = systemService.listSystems(page, size);
             return Result.success(result);
         } catch (Exception e) {
-            log.error("List systems failed", e);
+            log.error("获取列表系统失败", e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -49,7 +49,7 @@ public class SystemController {
             SystemDTO system = systemService.getSystemById(id);
             return Result.success(system);
         } catch (Exception e) {
-            log.error("Get system failed: id={}", id, e);
+            log.error("获取系统失败：id={}", id, e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -64,7 +64,7 @@ public class SystemController {
             SystemDTO system = systemService.getSystemBySystemId(systemId);
             return Result.success(system);
         } catch (Exception e) {
-            log.error("Get system by systemId failed: {}", systemId, e);
+            log.error("按系统ID获取系统失败：{}", systemId, e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -79,7 +79,7 @@ public class SystemController {
             SystemDTO result = systemService.createSystem(dto);
             return Result.success(result);
         } catch (Exception e) {
-            log.error("Create system failed", e);
+            log.error("创建系统失败", e);
             return Result.error("创建失败: " + e.getMessage());
         }
     }
@@ -94,7 +94,7 @@ public class SystemController {
             SystemDTO result = systemService.updateSystem(id, dto);
             return Result.success(result);
         } catch (Exception e) {
-            log.error("Update system failed: id={}", id, e);
+            log.error("更新系统失败：id={}", id, e);
             return Result.error("更新失败: " + e.getMessage());
         }
     }
@@ -109,7 +109,7 @@ public class SystemController {
             systemService.deleteSystem(id);
             return Result.success();
         } catch (Exception e) {
-            log.error("Delete system failed: id={}", id, e);
+            log.error("删除系统失败：id={}", id, e);
             return Result.error("删除失败: " + e.getMessage());
         }
     }
@@ -124,7 +124,7 @@ public class SystemController {
             String newApiKey = systemService.resetApiKey(id);
             return Result.success(newApiKey);
         } catch (Exception e) {
-            log.error("Reset API key failed: id={}", id, e);
+            log.error("重置API密钥失败：id＝{}", id, e);
             return Result.error("重置失败: " + e.getMessage());
         }
     }
@@ -142,7 +142,7 @@ public class SystemController {
             boolean valid = systemService.validateApiKey(apiKey, tenantId, systemId);
             return Result.success(valid);
         } catch (Exception e) {
-            log.error("Validate API key failed", e);
+            log.error("验证API密钥失败", e);
             return Result.error("验证失败: " + e.getMessage());
         }
     }

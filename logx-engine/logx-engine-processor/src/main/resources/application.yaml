@@ -54,27 +54,17 @@ logx:
   kafka:
     topic:
       log-ingestion: logx-logs        # 日志接收Topic
+      log-processing: logx-logs-processing  # 处理后的日志topic（给Detection）
       dead-letter: logx-logs-dlq      # 死信队列Topic
-      alerts: logx-alerts             # 告警Topic
-    send:
-      timeout: 30                     # 发送超时（秒）
 
   consumer:
     max-retries: 3                    # 最大重试次数
     retry-backoff-ms: 1000            # 重试退避时间（毫秒）
 
-  batch:
-    max-size: 100                     # 最大批量大小
-    flush-interval-ms: 5000           # 刷新间隔（毫秒）
-  # 批量写入配置
-  elasticsearch:
-    batch-size: 500        # 批量写入大小
-    flush-interval: 5000   # 刷新间隔(ms)
-
-  retention:
-    hot-days: 7                       # 热数据保留天数
-    cold-days: 30                     # 冷数据保留天数
-    total-days: 90                    # 总保留天数
+  # ES 配置
+  es:
+    bulk:
+      max-size: 500  # 单次批量写入最大数量
 
 # 日志配置
 logging:

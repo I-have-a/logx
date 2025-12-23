@@ -40,7 +40,7 @@ public class LogQueryService {
     private static final String INDEX_PREFIX = "logx-logs-";
 
     /**
-     * ✅ ISO 8601格式化器
+     * ISO 8601格式化器
      */
     private static final DateTimeFormatter ES_DATETIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -60,7 +60,7 @@ public class LogQueryService {
      */
     public PageResult<LogDTO> queryLogs(QueryDTO queryDTO) {
         try {
-            // ✅ 1. 参数验证
+            // 1. 参数验证
             validateQueryDTO(queryDTO);
 
             // 2. 构建索引名称
@@ -79,7 +79,7 @@ public class LogQueryService {
                     .query(query)
                     .from(from)
                     .size(size)
-                    .timeout("30s")  // ✅ 添加超时
+                    .timeout("30s")  // 添加超时
                     .sort(sort -> sort
                             .field(f -> f
                                     .field(queryDTO.getSortField())
@@ -100,7 +100,7 @@ public class LogQueryService {
                     try {
                         logs.add(convertToLogDTO(hit.source()));
                     } catch (Exception e) {
-                        log.warn("Failed to convert log: {}", hit.id(), e);
+                        log.warn("转换日志失败：{}", hit.id(), e);
                     }
                 }
             }
@@ -114,7 +114,7 @@ public class LogQueryService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to query logs", e);
+            log.error("查询日志失败", e);
             throw new BusinessException("查询失败，请稍后重试");
         }
     }
@@ -124,7 +124,7 @@ public class LogQueryService {
      */
     public List<LogDTO> queryByTraceId(String traceId) {
         try {
-            // ✅ 验证TraceId
+            // 验证TraceId
             if (traceId == null || traceId.isEmpty()) {
                 throw new BusinessException("TraceId不能为空");
             }
@@ -134,7 +134,7 @@ public class LogQueryService {
 
             Query query = Query.of(q -> q
                     .term(t -> t
-                            .field("traceId.keyword")  // ✅ 使用keyword字段
+                            .field("traceId.keyword")  // 使用keyword字段
                             .value(traceId)
                     )
             );
@@ -158,7 +158,7 @@ public class LogQueryService {
                     try {
                         logs.add(convertToLogDTO(hit.source()));
                     } catch (Exception e) {
-                        log.warn("Failed to convert log: {}", hit.id(), e);
+                        log.warn("转换日志失败：{}", hit.id(), e);
                     }
                 }
             }
@@ -168,7 +168,7 @@ public class LogQueryService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to query logs by traceId: {}", traceId, e);
+            log.error("按traceId查询日志失败：{}", traceId, e);
             throw new BusinessException("查询失败，请稍后重试");
         }
     }
@@ -474,7 +474,7 @@ public class LogQueryService {
                         ZoneOffset.UTC);
             }
         } catch (Exception e) {
-            log.warn("Failed to parse timestamp: {}", value);
+            log.warn("未能解析时间戳：{}", value);
         }
 
         return null;

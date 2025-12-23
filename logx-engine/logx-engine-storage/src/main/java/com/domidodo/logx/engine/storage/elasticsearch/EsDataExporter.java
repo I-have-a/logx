@@ -217,7 +217,7 @@ public class EsDataExporter {
 
         // 添加参数验证
         if (documentsPerFile <= 0) {
-            throw new IllegalArgumentException("documentsPerFile must be positive");
+            throw new IllegalArgumentException("documentsPerFile必须为正数");
         }
         if (documentsPerFile > 10000) {
             log.warn("documentsPerFile {} 太大，建议不超过10000", documentsPerFile);

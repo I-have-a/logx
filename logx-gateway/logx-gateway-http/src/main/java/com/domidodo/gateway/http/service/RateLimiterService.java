@@ -57,7 +57,7 @@ public class RateLimiterService {
         boolean allowed = redisRateLimiter.tryAcquire(key, globalQps * 60, WINDOW_SECONDS);
 
         if (!allowed) {
-            log.warn("Global rate limit exceeded, current minute: {}", getCurrentMinute());
+            log.warn("已超出全局速率限制，当前分钟数：{}", getCurrentMinute());
         }
 
         return allowed;
@@ -74,7 +74,7 @@ public class RateLimiterService {
         boolean allowed = redisRateLimiter.tryAcquire(key, tenantQps * 60, WINDOW_SECONDS);
 
         if (!allowed) {
-            log.warn("Tenant rate limit exceeded, tenantId: {}, minute: {}", tenantId, getCurrentMinute());
+            log.warn("超出租户费率限制，租户ID:{}，分钟：{}", tenantId, getCurrentMinute());
         }
 
         return allowed;
@@ -92,7 +92,7 @@ public class RateLimiterService {
         boolean allowed = redisRateLimiter.tryAcquire(key, systemQpm, WINDOW_SECONDS);
 
         if (!allowed) {
-            log.warn("System rate limit exceeded, tenantId: {}, systemId: {}, minute: {}",
+            log.warn("超出系统速率限制，tenantId:{}，systemId:｛}，分钟：{}",
                     tenantId, systemId, getCurrentMinute());
         }
 

@@ -36,12 +36,12 @@ public class EnhancedRuleEngine {
                 case "CONTINUOUS_REQUEST" -> evaluateContinuousRequest(rule, logData);
 
                 default -> {
-                    log.warn("Unknown rule type: {}", ruleType);
+                    log.warn("未知规则类型：{}", ruleType);
                     yield false;
                 }
             };
         } catch (Exception e) {
-            log.error("Error evaluating rule: {}", rule.getRuleName(), e);
+            log.error("评估规则时出错：{}", rule.getRuleName(), e);
             return false;
         }
     }
@@ -78,7 +78,7 @@ public class EnhancedRuleEngine {
             return compareString(actualStr, expectedValue, operator);
 
         } catch (Exception e) {
-            log.error("Field compare error: field={}, operator={}, value={}",
+            log.error("字段比较错误：字段={}，运算符={}、值={}",
                     fieldName, operator, expectedValue, e);
             return false;
         }
@@ -115,7 +115,7 @@ public class EnhancedRuleEngine {
             return compareNumber(operationCount, threshold, operator);
 
         } catch (Exception e) {
-            log.error("Batch operation evaluation error: rule={}, target={}",
+            log.error("批处理操作评估错误：规则={}，目标={}",
                     rule.getRuleName(), target, e);
             return false;
         }
@@ -155,7 +155,7 @@ public class EnhancedRuleEngine {
             return false;
 
         } catch (Exception e) {
-            log.error("Continuous request evaluation error: rule={}, target={}",
+            log.error("连续请求评估错误：规则={}，目标={}",
                     rule.getRuleName(), target, e);
             return false;
         }
@@ -199,7 +199,7 @@ public class EnhancedRuleEngine {
             case "=", "==" -> actual == expected;
             case "!=" -> actual != expected;
             default -> {
-                log.warn("Unknown number operator: {}", operator);
+                log.warn("未知数字运算符：{}", operator);
                 yield false;
             }
         };
@@ -217,7 +217,7 @@ public class EnhancedRuleEngine {
             case "endsWith" -> actual.endsWith(expected);
             case "matches" -> actual.matches(expected); // 正则匹配
             default -> {
-                log.warn("Unknown string operator: {}", operator);
+                log.warn("未知字符串运算符：{}", operator);
                 yield false;
             }
         };

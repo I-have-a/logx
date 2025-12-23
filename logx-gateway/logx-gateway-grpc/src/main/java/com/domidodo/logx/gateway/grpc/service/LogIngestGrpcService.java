@@ -87,12 +87,12 @@ public class LogIngestGrpcService extends LogServiceGrpc.LogServiceImplBase {
             responseObserver.onCompleted();
 
             long duration = System.currentTimeMillis() - startTime;
-            log.info("gRPC batch processed: tenant={}, system={}, logs={}, success={}, duration={}ms",
+            log.info("gRPC批处理：租户＝{}，系统＝{}、日志＝{}；成功＝{}。持续时间＝{}毫秒",
                     TenantContext.getTenantId(), TenantContext.getSystemId(),
                     logCount, successCount, duration);
 
         } catch (Exception e) {
-            log.error("Error processing gRPC log batch", e);
+            log.error("处理gRPC日志批处理时出错", e);
 
             LogBatchResponse response = LogBatchResponse.newBuilder()
                     .setSuccess(false)
@@ -130,7 +130,7 @@ public class LogIngestGrpcService extends LogServiceGrpc.LogServiceImplBase {
                         failed++;
                     }
                 } catch (Exception e) {
-                    log.error("Failed to process streamed log", e);
+                    log.error("无法处理流式日志", e);
                     failed++;
                 }
             }
@@ -162,7 +162,7 @@ public class LogIngestGrpcService extends LogServiceGrpc.LogServiceImplBase {
                 responseObserver.onNext(response);
                 responseObserver.onCompleted();
 
-                log.info("gRPC stream completed: received={}, success={}, failed={}",
+                log.info("gRPC流已完成：收到={}，成功={}、失败={}",
                         received, success, failed);
             }
         };

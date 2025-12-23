@@ -74,7 +74,7 @@ public class ElasticsearchConfig {
         }
 
         RestClient restClient = builder.build();
-        log.info("Elasticsearch RestClient initialized with hosts: {}", (Object) uris);
+        log.info("Elasticsearch RestClient已用主机初始化：{}", (Object) uris);
         return restClient;
     }
 
@@ -95,7 +95,7 @@ public class ElasticsearchConfig {
                 jacksonJsonpMapper
         );
         ElasticsearchClient client = new ElasticsearchClient(transport);
-        log.info("ElasticsearchClient initialized");
+        log.info("ElasticsearchClient已初始化");
         return client;
     }
 }

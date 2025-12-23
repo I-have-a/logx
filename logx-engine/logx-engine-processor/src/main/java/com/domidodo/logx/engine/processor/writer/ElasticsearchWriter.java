@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Elasticsearch 写入器（修复版）
+ * Elasticsearch 写入器
  * 批量写入日志到 ES
  */
 @Slf4j
@@ -63,7 +63,7 @@ public class ElasticsearchWriter {
      */
     public int bulkWrite(List<Map<String, Object>> logs) {
         if (logs == null || logs.isEmpty()) {
-            log.warn("No logs to write");
+            log.warn("没有要写入的日志");
             return 0;
         }
 
@@ -78,13 +78,13 @@ public class ElasticsearchWriter {
                 totalSuccess += batchSuccess;
             }
 
-            log.info("Bulk write completed: total={}, success={}, failed={}",
+            log.info("批量写入已完成：总计={}，成功={}、失败={}",
                     logs.size(), totalSuccess, logs.size() - totalSuccess);
 
             return totalSuccess;
 
         } catch (Exception e) {
-            log.error("Failed to bulk write logs to Elasticsearch", e);
+            log.error("无法将日志批量写入Elasticsearch", e);
             return totalSuccess;
         }
     }
@@ -114,7 +114,7 @@ public class ElasticsearchWriter {
                             )
                     );
                 } catch (Exception e) {
-                    log.error("Failed to add log to bulk request", e);
+                    log.error("向批量请求添加日志失败", e);
                 }
             }
 
@@ -129,7 +129,7 @@ public class ElasticsearchWriter {
                 for (BulkResponseItem item : response.items()) {
                     if (item.error() != null) {
                         failCount++;
-                        log.error("Bulk write error: index={}, id={}, error={}",
+                        log.error("批量写入错误：index＝{}，id＝{}、错误＝{}",
                                 item.index(), item.id(), item.error().reason());
                     } else {
                         successCount++;
@@ -140,16 +140,16 @@ public class ElasticsearchWriter {
             }
 
             if (failCount > 0) {
-                log.warn("Batch write completed with errors: {} success, {} failed",
+                log.warn("批写入已完成，但有错误：{}成功，{}失败",
                         successCount, failCount);
             } else {
-                log.debug("Batch write completed successfully: {} logs written", successCount);
+                log.debug("批量写入成功完成：已写入{}条日志", successCount);
             }
 
             return successCount;
 
         } catch (Exception e) {
-            log.error("Failed to write batch to Elasticsearch", e);
+            log.error("未能将批写入Elasticsearch", e);
             return 0;
         }
     }
@@ -176,7 +176,7 @@ public class ElasticsearchWriter {
 
         // 验证索引名称长度
         if (indexName.length() > MAX_INDEX_NAME_LENGTH) {
-            log.warn("Index name too long, truncating: {}", indexName);
+            log.warn("索引名称太长，截断：{}", indexName);
             indexName = indexName.substring(0, MAX_INDEX_NAME_LENGTH);
         }
 
@@ -191,20 +191,20 @@ public class ElasticsearchWriter {
             return defaultValue;
         }
 
-        // ✅ 转换为小写
+        // 转换为小写
         String sanitized = input.toLowerCase().trim();
 
-        // ✅ 移除特殊字符，只保留字母、数字、连字符
+        // 移除特殊字符，只保留字母、数字、连字符
         sanitized = sanitized.replaceAll("[^a-z0-9-]", "");
 
-        // ✅ 限制长度（防止过长）
+        // 限制长度（防止过长）
         if (sanitized.length() > 50) {
             sanitized = sanitized.substring(0, 50);
         }
 
-        // ✅ 再次验证格式
+        // 再次验证格式
         if (!SAFE_NAME_PATTERN.matcher(sanitized).matches()) {
-            log.warn("Invalid index component, using default: {}", input);
+            log.warn("索引组件无效，使用默认值：{}", input);
             return defaultValue;
         }
 
@@ -271,7 +271,7 @@ public class ElasticsearchWriter {
             return dateTime.format(DATE_FORMATTER);
 
         } catch (Exception e) {
-            log.warn("Failed to parse timestamp, using current date: {}", timestamp, e);
+            log.warn("无法使用当前日期解析时间戳：{}", timestamp, e);
             return LocalDateTime.now().format(DATE_FORMATTER);
         }
     }
@@ -309,11 +309,11 @@ public class ElasticsearchWriter {
                     .document(logOne)
             );
 
-            log.debug("Log written to index: {}, id: {}", indexName, documentId);
+            log.debug("日志写入index：{}，id:{}", indexName, documentId);
             return true;
 
         } catch (Exception e) {
-            log.error("Failed to write log to Elasticsearch", e);
+            log.error("未能将日志写入Elasticsearch", e);
             return false;
         }
     }

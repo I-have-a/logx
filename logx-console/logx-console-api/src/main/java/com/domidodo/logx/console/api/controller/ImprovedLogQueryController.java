@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
 import java.util.List;
 
 /**
@@ -51,7 +52,7 @@ public class ImprovedLogQueryController {
 
             // 3. 记录查询日志
             long duration = System.currentTimeMillis() - startTime;
-            log.info("Query logs: tenant={}, system={}, keyword={}, page={}, size={}, duration={}ms",
+            log.info("查询日志：租户={}，系统={}；关键字={}。页面={}、数量={}和持续时间={}毫秒",
                     queryDTO.getTenantId(), queryDTO.getSystemId(),
                     queryDTO.getKeyword(), queryDTO.getPage(),
                     queryDTO.getSize(), duration);
@@ -86,12 +87,12 @@ public class ImprovedLogQueryController {
             // 查询日志
             List<LogDTO> logs = logQueryService.queryByTraceId(traceId);
 
-            log.info("Query by traceId: {}, count={}", traceId, logs.size());
+            log.info("按traceId查询：{}，计数={}", traceId, logs.size());
 
             return Result.success(logs);
 
         } catch (Exception e) {
-            log.error("Query logs by traceId failed: {}", traceId, e);
+            log.error("按traceId查询日志失败：{}", traceId, e);
             return Result.error("查询失败: " + e.getMessage());
         }
     }
@@ -123,7 +124,7 @@ public class ImprovedLogQueryController {
             }
 
             // TODO: 实现异步导出
-            log.info("Export logs request: tenant={}, system={}, timeRange={} to {}",
+            log.info("导出日志请求：租户={}，系统={}、时间范围={}到{}",
                     queryDTO.getTenantId(), queryDTO.getSystemId(),
                     queryDTO.getStartTime(), queryDTO.getEndTime());
 

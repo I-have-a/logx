@@ -46,7 +46,7 @@ public class MyBatisPlusConfig {
         // 4. 防止全表更新与删除插件
         interceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
 
-        log.info("MyBatis Plus interceptor configured with tenant, pagination, optimistic lock and block attack");
+        log.info("MyBatis Plus拦截器配置租户、分页、乐观锁和全表攻击");
         return interceptor;
     }
 }

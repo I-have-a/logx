@@ -134,7 +134,7 @@ public class SystemService {
             dto.setCreateTime(system.getCreateTime());
 
             // 8. 记录日志（不记录API Key）
-            log.info("System created: systemId={}, tenantId={}",
+            log.info("已创建系统：systemId= {}，tenantId= {} ",
                     dto.getSystemId(), dto.getTenantId());
 
             return dto;
@@ -174,13 +174,13 @@ public class SystemService {
 
             systemMapper.updateById(system);
 
-            log.info("System updated: id={}, systemId={}", id, system.getSystemId());
+            log.info("系统已更新：id={}，systemId={}", id, system.getSystemId());
             return convertToDTO(system);
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to update system: id={}", id, e);
+            log.error("更新系统失败：id={}", id, e);
             throw new BusinessException("更新系统失败");
         }
     }
@@ -200,12 +200,12 @@ public class SystemService {
             system.setStatus(0);
             systemMapper.updateById(system);
 
-            log.info("System deleted: id={}, systemId={}", id, system.getSystemId());
+            log.info("系统已删除：id={}，systemId={}", id, system.getSystemId());
 
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to delete system: id={}", id, e);
+            log.error("删除系统失败：id={}", id, e);
             throw new BusinessException("删除系统失败");
         }
     }
@@ -231,7 +231,7 @@ public class SystemService {
             systemMapper.updateById(system);
 
             // 记录日志（不记录API Key）
-            log.info("API Key reset: systemId={}", system.getSystemId());
+            log.info("API密钥重置：systemId＝{}", system.getSystemId());
 
             // 返回原始密钥（仅此一次）
             return newApiKey;
@@ -239,7 +239,7 @@ public class SystemService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to reset API key: id={}", id, e);
+            log.error("未能重置API密钥：id＝{}", id, e);
             throw new BusinessException("重置API Key失败");
         }
     }
@@ -266,7 +266,7 @@ public class SystemService {
             // 3. 查询系统
             System system = systemMapper.selectByApiKey(encryptedApiKey);
             if (system == null) {
-                log.warn("API Key not found");
+                log.warn("找不到API密钥");
                 return false;
             }
 
@@ -276,13 +276,13 @@ public class SystemService {
                             && system.getStatus() == 1;
 
             if (!valid) {
-                log.warn("API Key validation failed: mismatch");
+                log.warn("API密钥验证失败：不匹配");
             }
 
             return valid;
 
         } catch (Exception e) {
-            log.error("API Key validation error", e);
+            log.error("API密钥验证错误", e);
             return false;
         }
     }

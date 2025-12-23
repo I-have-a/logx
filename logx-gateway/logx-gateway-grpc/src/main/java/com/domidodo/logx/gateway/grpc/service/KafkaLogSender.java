@@ -42,9 +42,9 @@ public class KafkaLogSender {
             kafkaTemplate.send(logTopic, key, logJson)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
-                            log.error("Failed to send log to Kafka", ex);
+                            log.error("无法将日志发送到Kafka", ex);
                         } else {
-                            log.debug("Log sent to Kafka: partition={}, offset={}",
+                            log.debug("日志发送到Kafka：分区={}，偏移量={}",
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         }
@@ -53,7 +53,7 @@ public class KafkaLogSender {
             return true;
 
         } catch (Exception e) {
-            log.error("Failed to send log to Kafka", e);
+            log.error("无法将日志发送到Kafka", e);
             return false;
         }
     }
@@ -79,7 +79,7 @@ public class KafkaLogSender {
                         String key = generateKey(logOne);
                         return kafkaTemplate.send(logTopic, key, logJson);
                     } catch (Exception e) {
-                        log.error("Failed to prepare log for sending", e);
+                        log.error("准备日志发送失败", e);
                         return CompletableFuture.<SendResult<String, String>>failedFuture(e);
                     }
                 })
@@ -90,9 +90,9 @@ public class KafkaLogSender {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .get(30, TimeUnit.SECONDS); // 添加超时
         } catch (TimeoutException e) {
-            log.error("Batch send timeout after 30s", e);
+            log.error("30秒后批量发送超时", e);
         } catch (Exception e) {
-            log.error("Batch send failed", e);
+            log.error("批量发送失败", e);
         }
 
         // 3. 统计成功数量（不阻塞）
@@ -104,7 +104,7 @@ public class KafkaLogSender {
 
         int total = logs.size();
         int failed = total - successCount.get();
-        log.info("Batch send completed: total={}, success={}, failed={}",
+        log.info("批量发送完成：总计={}，成功={}、失败={}",
                 total, successCount.get(), failed);
 
         return successCount.get();
@@ -123,7 +123,7 @@ public class KafkaLogSender {
             kafkaTemplate.send(logTopic, key, logJson);
 
         } catch (Exception e) {
-            log.error("Failed to send log async", e);
+            log.error("异步发送日志失败", e);
         }
     }
 

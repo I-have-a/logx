@@ -52,7 +52,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e) {
         // 记录完整错误到日志
-        log.error("Internal server error", e);
+        log.error("服务器内部错误", e);
 
         // 只返回通用错误消息
         return Result.error("系统错误，请联系管理员");
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NullPointerException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleNullPointerException(NullPointerException e) {
-        log.error("Null pointer exception", e);
+        log.error("空指针异常", e);
         return Result.error("系统错误");
     }
 
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) {
-        log.warn("Illegal argument: {}", e.getMessage());
+        log.warn("非法参数：{}", e.getMessage());
         return Result.error(400, "参数错误");
     }
 }

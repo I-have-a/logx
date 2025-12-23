@@ -69,7 +69,7 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
             TenantContext.setTenantId(tenantId);
             TenantContext.setSystemId(systemId);
 
-            log.debug("gRPC request authenticated: tenantId={}, systemId={}", tenantId, systemId);
+            log.debug("gRPC请求已通过身份验证：tenantId={}，systemId={}", tenantId, systemId);
 
             // 5. 继续处理请求，并在完成后清理上下文
             return new ForwardingServerCallListener.SimpleForwardingServerCallListener<>(

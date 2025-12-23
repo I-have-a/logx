@@ -72,7 +72,7 @@ public class LogParser {
         // 1. JSON 解析
         Map<String, Object> logMap = JsonUtil.parseObject(logJson);
         if (logMap == null || logMap.isEmpty()) {
-            throw new IllegalArgumentException("Invalid JSON format or empty log");
+            throw new IllegalArgumentException("JSON格式无效或日志为空");
         }
 
         // 2. 标准化处理
@@ -132,7 +132,7 @@ public class LogParser {
         normalized.put("tags", logMap.get("tags"));
         normalized.put("extra", sanitizeExtra(logMap.get("extra")));
 
-        // ✅ 时间戳处理（修复版）
+        // 时间戳处理
         normalized.put("timestamp", parseTimestamp(logMap.get("timestamp")));
 
         return normalized;
@@ -353,11 +353,11 @@ public class LogParser {
             }
 
         } catch (Exception e) {
-            log.warn("Failed to parse timestamp: {}, error: {}", timestamp, e.getMessage());
+            log.warn("解析时间戳失败：{}，错误：{}", timestamp, e.getMessage());
         }
 
         // 所有解析都失败，返回当前时间
-        log.warn("Using current time for unparseable timestamp: {}", timestamp);
+        log.warn("使用当前时间作为不可解析的时间戳：{}", timestamp);
         return LocalDateTime.now();
     }
 
@@ -401,18 +401,18 @@ public class LogParser {
     private void validateFields(Map<String, Object> logMap) {
         // 验证必填字段
         if (logMap.get("tenantId") == null) {
-            throw new IllegalArgumentException("tenantId is required");
+            throw new IllegalArgumentException("tenantId是必需的");
         }
 
         if (logMap.get("systemId") == null) {
-            throw new IllegalArgumentException("systemId is required");
+            throw new IllegalArgumentException("systemId是必需的");
         }
 
         // 验证日志级别
         String level = (String) logMap.get("level");
         Set<String> validLevels = Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL");
         if (!validLevels.contains(level)) {
-            log.warn("Invalid log level: {}, using INFO", level);
+            log.warn("日志级别无效：{}，使用INFO", level);
             logMap.put("level", "INFO");
         }
     }

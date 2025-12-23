@@ -47,7 +47,7 @@ public class DefaultUserContextProvider implements UserContextProvider {
                     }
                 }
             } catch (Exception e) {
-                log.debug("Failed to get userId from session", e);
+                log.debug("无法从会话中获取用户ID", e);
             }
         }
 
@@ -59,7 +59,7 @@ public class DefaultUserContextProvider implements UserContextProvider {
                     return principal.getName();
                 }
             } catch (Exception e) {
-                log.debug("Failed to get userId from principal", e);
+                log.debug("无法从主体获取用户ID", e);
             }
         }
 
@@ -101,7 +101,7 @@ public class DefaultUserContextProvider implements UserContextProvider {
                     }
                 }
             } catch (Exception e) {
-                log.debug("Failed to get userName from session", e);
+                log.debug("无法从会话中获取用户名", e);
             }
         }
 
@@ -113,7 +113,7 @@ public class DefaultUserContextProvider implements UserContextProvider {
                     return principal.getName();
                 }
             } catch (Exception e) {
-                log.debug("Failed to get userName from principal", e);
+                log.debug("无法从主体获取用户名", e);
             }
         }
 
@@ -145,7 +145,7 @@ public class DefaultUserContextProvider implements UserContextProvider {
                     }
                 }
             } catch (Exception e) {
-                log.debug("Failed to get tenantId from session", e);
+                log.debug("无法从会话中获取tenantId", e);
             }
         }
 

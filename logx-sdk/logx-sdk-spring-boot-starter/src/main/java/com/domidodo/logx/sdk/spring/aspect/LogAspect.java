@@ -102,7 +102,7 @@ public class LogAspect {
                     entryBuilder.tenantId(tenantId);
                 }
             } catch (Exception e) {
-                log.debug("Failed to get user context", e);
+                log.debug("无法获取用户上下文", e);
             }
         }
 

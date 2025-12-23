@@ -7,6 +7,7 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -73,4 +74,6 @@ public class LogDTO implements Serializable {
     private String userAgent;
 
     private Integer lineNumber;
+
+    private List<String> tags;
 }
