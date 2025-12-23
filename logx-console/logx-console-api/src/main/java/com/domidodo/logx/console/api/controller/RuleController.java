@@ -50,7 +50,7 @@ public class RuleController {
     );
 
     /**
-     * 分页查询规则列表（修复版）
+     * 分页查询规则列表
      */
     @GetMapping("/list")
     @Operation(summary = "分页查询规则列表")
@@ -131,7 +131,7 @@ public class RuleController {
     }
 
     /**
-     * 查询启用的规则（修复版）
+     * 查询启用的规则
      */
     @GetMapping("/enabled")
     @Operation(summary = "查询启用的规则")
@@ -163,7 +163,7 @@ public class RuleController {
     }
 
     /**
-     * 创建规则（修复版）
+     * 创建规则
      */
     @PostMapping
     @Operation(summary = "创建规则")
@@ -216,7 +216,7 @@ public class RuleController {
     }
 
     /**
-     * 更新规则（修复版）
+     * 更新规则
      */
     @PutMapping("/{id}")
     @Operation(summary = "更新规则")
@@ -270,7 +270,7 @@ public class RuleController {
     }
 
     /**
-     * 删除规则（修复版）
+     * 删除规则
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "删除规则")
@@ -308,7 +308,7 @@ public class RuleController {
     }
 
     /**
-     * 启用/禁用规则（修复版）
+     * 启用/禁用规则
      */
     @PutMapping("/{id}/status")
     @Operation(summary = "启用/禁用规则")

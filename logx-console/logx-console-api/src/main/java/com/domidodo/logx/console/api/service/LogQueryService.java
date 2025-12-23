@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 日志查询服务（修复版）
+ * 日志查询服务
  */
 @Slf4j
 @Service

@@ -17,13 +17,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 /**
- * 改进的日志查询控制器
- * 增强安全性：
- * 1. 输入验证
- * 2. SQL注入防护
- * 3. XSS防护
- * 4. 请求频率限制
- * 5. 完善的错误处理
+ * 日志查询控制器
  */
 @Slf4j
 @RestController
@@ -98,7 +92,7 @@ public class ImprovedLogQueryController {
     }
 
     /**
-     * 导出日志（增加安全控制）
+     * 导出日志
      */
     @PostMapping("/export")
     @Operation(summary = "导出日志")
