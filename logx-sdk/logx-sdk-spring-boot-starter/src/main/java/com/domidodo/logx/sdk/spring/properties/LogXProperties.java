@@ -146,7 +146,7 @@ public class LogXProperties {
         /**
          * 慢请求阈值（毫秒）
          */
-        private long slowThreshold = 3000;
+        private long slowThreshold = 5000;
     }
 
     @Data

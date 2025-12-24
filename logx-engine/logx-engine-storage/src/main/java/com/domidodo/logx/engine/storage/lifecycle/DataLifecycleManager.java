@@ -1,15 +1,21 @@
 package com.domidodo.logx.engine.storage.lifecycle;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
+import co.elastic.clients.elasticsearch.indices.IndicesStatsResponse;
+import co.elastic.clients.elasticsearch.indices.stats.IndicesStats;
 import com.domidodo.logx.engine.storage.config.StorageConfig;
 import com.domidodo.logx.engine.storage.elasticsearch.ChunkedDataExporter;
 import com.domidodo.logx.engine.storage.elasticsearch.EsDataExporter;
 import com.domidodo.logx.engine.storage.elasticsearch.EsIndexManager;
+import com.domidodo.logx.engine.storage.elasticsearch.IndexPatternMatcher;
 import com.domidodo.logx.engine.storage.minio.MinioStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -26,6 +32,219 @@ public class DataLifecycleManager {
     private final StorageConfig storageConfig;
     private final EsDataExporter esDataExporter;
     private final ChunkedDataExporter chunkedDataExporter;
+    private final ElasticsearchClient elasticsearchClient;
+
+    /**
+     * 根据日期获取索引列表
+     */
+    private List<String> getIndicesByDate(LocalDate date) {
+        log.info("开始获取日期 {} 之前的索引", date);
+        List<String> indices = new ArrayList<>();
+
+        try {
+            Set<String> allIndices = esIndexManager.getAllLogIndicesPublic();
+            IndexPatternMatcher matcher = new IndexPatternMatcher(storageConfig);
+
+            for (String indexName : allIndices) {
+                if (matcher.matchesPattern(indexName)) {
+                    LocalDate indexDate = matcher.extractDate(indexName);
+                    if (indexDate != null && !indexDate.isAfter(date)) {
+                        indices.add(indexName);
+                    }
+                }
+            }
+
+            log.info("找到 {} 个符合日期条件的索引", indices.size());
+
+            // 按日期排序（最新的在前）
+            indices.sort((a, b) -> {
+                LocalDate dateA = matcher.extractDate(a);
+                LocalDate dateB = matcher.extractDate(b);
+                if (dateA == null || dateB == null) return 0;
+                return dateB.compareTo(dateA);
+            });
+
+        } catch (Exception e) {
+            log.error("获取索引列表失败", e);
+        }
+
+        return indices;
+    }
+
+    /**
+     * 获取索引的详细统计信息
+     */
+    public Map<String, Object> getIndexDetailedStats(String indexName) {
+        Map<String, Object> stats = new HashMap<>();
+
+        try {
+            // 获取索引统计
+            IndicesStatsResponse response = elasticsearchClient.indices().stats(b -> b
+                    .index(indexName)
+            );
+
+            IndicesStats indexStats = response.indices().get(indexName);
+            if (indexStats != null) {
+                // 文档统计
+                stats.put("documentCount", indexStats.primaries().docs().count());
+                stats.put("deletedDocumentCount", indexStats.primaries().docs().deleted());
+
+                // 存储统计
+                stats.put("storeSize", indexStats.primaries().store().size());
+                stats.put("storeSizeBytes", indexStats.primaries().store().sizeInBytes());
+
+                // 索引统计
+                stats.put("indexingTime", indexStats.primaries().indexing().indexTime());
+                stats.put("indexingCount", indexStats.primaries().indexing().indexTotal());
+
+                // 查询统计
+                stats.put("queryTime", indexStats.primaries().search().queryTime());
+                stats.put("queryCount", indexStats.primaries().search().queryTotal());
+
+                // 分片信息
+                stats.put("shardCount", indexStats.shards().size());
+            }
+
+        } catch (Exception e) {
+            log.error("获取索引 {} 的详细统计失败", indexName, e);
+            stats.put("error", e.getMessage());
+        }
+
+        return stats;
+    }
+
+    /**
+     * 获取指定日期范围内的索引
+     */
+    public List<String> getIndicesInDateRange(LocalDate startDate, LocalDate endDate) {
+        List<String> indices = new ArrayList<>();
+
+        try {
+            Set<String> allIndices = esIndexManager.getAllLogIndicesPublic();
+
+            for (String indexName : allIndices) {
+                try {
+                    // 解析索引名称中的日期
+                    IndexInfo indexInfo = parseIndexName(indexName);
+                    if (indexInfo != null && indexInfo.date != null) {
+                        // 检查日期是否在范围内
+                        if (!indexInfo.date.isBefore(startDate) && !indexInfo.date.isAfter(endDate)) {
+                            indices.add(indexName);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("无法解析索引 {} 的日期，跳过", indexName);
+                }
+            }
+
+            log.info("在日期范围 {} 到 {} 中找到 {} 个索引",
+                    startDate, endDate, indices.size());
+        } catch (Exception e) {
+            log.error("获取日期范围内的索引失败", e);
+        }
+
+        return indices;
+    }
+
+    /**
+     * 获取存储统计信息
+     */
+    public Map<String, Object> getStorageStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        try {
+            // 1. 获取 ES 索引统计
+            Map<String, Object> esStats = getElasticsearchStats();
+            stats.putAll(esStats);
+
+            // 2. 获取 MinIO 归档统计
+            Map<String, Object> archiveStats = minioStorageService.getArchiveStats();
+            stats.putAll(archiveStats);
+
+            // 3. 生命周期配置
+            stats.put("hotDataDays", storageConfig.getLifecycle().getHotDataDays());
+            stats.put("warmDataDays", storageConfig.getLifecycle().getWarmDataDays());
+            stats.put("coldDataDays", storageConfig.getLifecycle().getColdDataDays());
+            stats.put("archiveEnabled", storageConfig.getLifecycle().getArchiveEnabled());
+            stats.put("cleanupEnabled", storageConfig.getLifecycle().getCleanupEnabled());
+
+            // 4. 计算合并统计
+            long esDataSize = (long) stats.getOrDefault("esDataSize", 0L);
+            long archiveSize = (long) stats.getOrDefault("totalSize", 0L);
+            long totalStorageSize = esDataSize + archiveSize;
+
+            stats.put("totalStorageSize", totalStorageSize);
+            stats.put("totalStorageSizeMB", totalStorageSize / (1024 * 1024));
+            stats.put("totalStorageSizeGB", totalStorageSize / (1024 * 1024 * 1024.0));
+
+            // 5. 存储类型分布
+            double esPercentage = totalStorageSize > 0 ? (double) esDataSize / totalStorageSize * 100 : 0;
+            double archivePercentage = totalStorageSize > 0 ? (double) archiveSize / totalStorageSize * 100 : 0;
+
+            stats.put("esStoragePercentage", String.format("%.2f%%", esPercentage));
+            stats.put("archiveStoragePercentage", String.format("%.2f%%", archivePercentage));
+
+            // 6. 最近7天索引创建情况
+            LocalDate weekAgo = LocalDate.now().minusDays(7);
+            List<String> recentIndices = getIndicesByDate(LocalDate.now());
+            List<String> weekOldIndices = getIndicesByDate(weekAgo);
+            stats.put("indicesCreatedLast7Days", recentIndices.size() - weekOldIndices.size());
+
+            // 7. 存储状态
+            stats.put("status", "OK");
+            stats.put("timestamp", LocalDateTime.now().toString());
+
+        } catch (Exception e) {
+            log.error("获取存储统计信息失败", e);
+            stats.put("error", e.getMessage());
+            stats.put("status", "ERROR");
+        }
+
+        return stats;
+    }
+
+    /**
+     * 获取 Elasticsearch 统计信息
+     */
+    private Map<String, Object> getElasticsearchStats() {
+        Map<String, Object> esStats = new HashMap<>();
+
+        try {
+            // 获取所有索引
+            GetIndexResponse response = elasticsearchClient.indices().get(b -> b
+                    .index(storageConfig.getIndex().getPrefix() + "-*")
+            );
+
+            Set<String> logIndices = response.result().keySet();
+            long esIndicesCount = logIndices.size();
+
+            // 获取索引统计
+            IndicesStatsResponse statsResponse = elasticsearchClient.indices().stats(b -> b
+                    .index(storageConfig.getIndex().getPrefix() + "-*")
+            );
+
+            long totalDocs = 0;
+            long totalSize = 0;
+
+            for (Map.Entry<String, IndicesStats> entry : statsResponse.indices().entrySet()) {
+                IndicesStats indexStats = entry.getValue();
+                totalDocs += indexStats.primaries().docs().count();
+                totalSize += indexStats.primaries().store().sizeInBytes();
+            }
+
+            esStats.put("esIndicesCount", esIndicesCount);
+            esStats.put("esDocumentCount", totalDocs);
+            esStats.put("esDataSize", totalSize);
+            esStats.put("esDataSizeMB", totalSize / (1024 * 1024));
+            esStats.put("esDataSizeGB", totalSize / (1024 * 1024 * 1024.0));
+
+        } catch (Exception e) {
+            log.error("获取 Elasticsearch 统计失败", e);
+            esStats.put("esError", e.getMessage());
+        }
+
+        return esStats;
+    }
 
     /**
      * 执行完整的生命周期管理
@@ -237,15 +456,6 @@ public class DataLifecycleManager {
     }
 
     /**
-     * 根据日期获取索引列表
-     */
-    private List<String> getIndicesByDate(LocalDate date) {
-        // TODO: 实现根据日期获取索引的逻辑
-        // 需要调用 Elasticsearch 的 _cat/indices API
-        return new ArrayList<>();
-    }
-
-    /**
      * 解析索引名称
      * 格式：logx-logs-tenantId-systemId-yyyy.MM.dd
      */
@@ -264,33 +474,6 @@ public class DataLifecycleManager {
             log.warn("解析索引名称失败: {}", indexName, e);
         }
         return null;
-    }
-
-    /**
-     * 获取存储统计信息
-     */
-    public Map<String, Object> getStorageStats() {
-        Map<String, Object> stats = new HashMap<>();
-
-        try {
-            // ES 索引统计
-            stats.put("esIndicesCount", 0); // TODO: 实现
-            stats.put("esDataSize", 0L);
-
-            // MinIO 归档统计
-            stats.put("archivesCount", 0); // TODO: 实现
-            stats.put("archiveSize", 0L);
-
-            // 生命周期配置
-            stats.put("hotDataDays", storageConfig.getLifecycle().getHotDataDays());
-            stats.put("warmDataDays", storageConfig.getLifecycle().getWarmDataDays());
-            stats.put("coldDataDays", storageConfig.getLifecycle().getColdDataDays());
-
-        } catch (Exception e) {
-            log.error("获取存储统计信息失败", e);
-        }
-
-        return stats;
     }
 
     /**

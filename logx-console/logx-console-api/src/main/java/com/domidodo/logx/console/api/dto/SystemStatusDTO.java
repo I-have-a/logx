@@ -18,9 +18,9 @@ public class SystemStatusDTO {
     private String systemName;
 
     /**
-     * 租户名称
+     * 租户ID
      */
-    private String tenantName;
+    private String tenantId;
 
     /**
      * 今日日志量
@@ -36,11 +36,6 @@ public class SystemStatusDTO {
      * 健康度（%）
      */
     private Double healthScore;
-
-    /**
-     * SLA达成率（%）
-     */
-    private Double slaAchievementRate;
 
     /**
      * 健康等级：优秀/良好/一般/较差/危险

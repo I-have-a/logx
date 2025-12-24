@@ -70,25 +70,3 @@ public class StorageConfig {
     }
 }
 
-/**
- * MinIO 配置类
- */
-@Data
-@Configuration
-@ConfigurationProperties(prefix = "minio")
-class MinioConfig {
-    private String endpoint;
-    private String accessKey;
-    private String secretKey;
-    private String bucketName;
-    private String region;
-
-    @Bean
-    public MinioClient minioClient() {
-        return MinioClient.builder()
-                .endpoint(endpoint)
-                .credentials(accessKey, secretKey)
-                .region(region)
-                .build();
-    }
-}

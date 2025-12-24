@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 规则管理控制器（修复版）
+ * 规则管理控制器
  */
 @Slf4j
 @RestController
@@ -68,11 +68,12 @@ public class RuleController {
             Page<Rule> pageParam = new Page<>(page, size);
             LambdaQueryWrapper<Rule> wrapper = new LambdaQueryWrapper<>();
 
-            // 租户隔离（使用String类型）
+            // 租户隔离
             if (tenantId != null && !tenantId.isEmpty()) {
                 wrapper.eq(Rule::getTenantId, tenantId);
             } else {
                 // 如果没有指定租户，使用当前上下文的租户
+                TenantContext.setIgnoreTenant(true);
                 String contextTenantId = TenantContext.getTenantId();
                 if (contextTenantId != null) {
                     wrapper.eq(Rule::getTenantId, contextTenantId);

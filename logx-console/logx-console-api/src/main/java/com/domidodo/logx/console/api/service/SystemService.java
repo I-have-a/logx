@@ -89,7 +89,7 @@ public class SystemService {
     }
 
     /**
-     * 创建系统（修复版）
+     * 创建系统
      */
     @Transactional(rollbackFor = Exception.class)
     public SystemDTO createSystem(SystemDTO dto) {
@@ -142,7 +142,7 @@ public class SystemService {
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to create system", e);
+            log.error("创建系统失败", e);
             throw new BusinessException("创建系统失败");
         }
     }
@@ -309,7 +309,7 @@ public class SystemService {
     }
 
     /**
-     * 生成强API Key（修复版）
+     * 生成强API Key
      * 使用加密安全的随机数生成器
      */
     private String generateStrongApiKey() {

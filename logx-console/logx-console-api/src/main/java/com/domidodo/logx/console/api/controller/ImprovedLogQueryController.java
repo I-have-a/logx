@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/logs")
 @RequiredArgsConstructor
-@Tag(name = "日志查询", description = "日志查询相关接口（安全增强版）")
+@Tag(name = "日志查询", description = "日志查询相关接口")
 public class ImprovedLogQueryController {
 
     private final LogQueryService logQueryService;

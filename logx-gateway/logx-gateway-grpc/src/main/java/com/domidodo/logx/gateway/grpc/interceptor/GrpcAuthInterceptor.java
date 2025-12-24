@@ -1,9 +1,11 @@
 package com.domidodo.logx.gateway.grpc.interceptor;
 
 import com.domidodo.logx.common.context.TenantContext;
+import com.domidodo.logx.gateway.grpc.mapper.ValidateMapper;
 import io.grpc.*;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,6 +16,9 @@ import org.springframework.stereotype.Component;
 @Component
 @GrpcGlobalServerInterceptor
 public class GrpcAuthInterceptor implements ServerInterceptor {
+
+    @Autowired
+    ValidateMapper validateMapper;
 
     /**
      * 元数据 Key
@@ -58,7 +63,7 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
                 };
             }
 
-            // 3. 验证 API Key（TODO: 实际应该查询数据库验证）
+            // 3. 验证 API Key
             if (!validateApiKey(apiKey, tenantId, systemId)) {
                 call.close(Status.PERMISSION_DENIED.withDescription("Invalid API Key"), headers);
                 return new ServerCall.Listener<>() {
@@ -102,11 +107,16 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
     }
 
     /**
-     * 验证 API Key（TODO: 实现实际的验证逻辑）
+     * 验证 API Key
      */
     private boolean validateApiKey(String apiKey, String tenantId, String systemId) {
         // 这里应该查询数据库验证 API Key 是否有效
         // 暂时简单返回 true
-        return true;
+        log.debug("验证 API Key：apiKey={}，tenantId={}，systemId={}", apiKey, tenantId, systemId);
+        TenantContext.setIgnoreTenant(true);
+        boolean b = validateMapper.validateApiKey(apiKey, tenantId, systemId) >= 1;
+        TenantContext.setIgnoreTenant(false);
+        return b;
+
     }
 }

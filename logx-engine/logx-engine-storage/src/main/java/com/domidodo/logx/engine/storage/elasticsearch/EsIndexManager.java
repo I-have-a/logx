@@ -1,5 +1,7 @@
 package com.domidodo.logx.engine.storage.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.indices.GetIndexResponse;
 import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
 import com.domidodo.logx.engine.storage.config.StorageConfig;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class EsIndexManager {
     private final ElasticsearchTemplate elasticsearchTemplate;
     private final StorageConfig storageConfig;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+    private final ElasticsearchClient elasticsearchClient;
 
     /**
      * 创建日志索引
@@ -201,9 +204,30 @@ public class EsIndexManager {
      * 获取所有日志索引
      */
     private Set<String> getAllLogIndices() {
-        // 这里需要实现获取所有匹配前缀的索引
-        // 实际实现需要使用 Elasticsearch 的 _cat/indices API
-        return new HashSet<>();
+        Set<String> indices = new HashSet<>();
+
+        try {
+            // 使用 Elasticsearch 客户端获取索引列表
+            GetIndexResponse response = elasticsearchClient.indices().get(b -> b
+                    .index(storageConfig.getIndex().getPrefix() + "-*")
+            );
+
+            // 获取所有匹配的索引名称
+            indices.addAll(response.result().keySet());
+
+            log.info("找到 {} 个日志索引", indices.size());
+        } catch (Exception e) {
+            log.error("获取日志索引列表失败", e);
+        }
+
+        return indices;
+    }
+
+    /**
+     * 获取所有日志索引（公共方法）
+     */
+    public Set<String> getAllLogIndicesPublic() {
+        return getAllLogIndices();
     }
 
     /**
