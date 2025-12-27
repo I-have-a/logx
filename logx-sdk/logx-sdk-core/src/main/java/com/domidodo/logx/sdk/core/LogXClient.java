@@ -171,7 +171,7 @@ public class LogXClient {
     }
 
     /**
-     * 核心日志记录方法（简化版）
+     * 核心日志记录方法
      * extra 参数会被转换为 google.protobuf.Struct
      */
     private void log(Level level, String message, Throwable throwable, Map<String, Object> extra) {

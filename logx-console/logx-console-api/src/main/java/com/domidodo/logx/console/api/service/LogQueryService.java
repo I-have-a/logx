@@ -109,7 +109,7 @@ public class LogQueryService {
             long total = response.hits().total() != null ?
                     response.hits().total().value() : 0;
 
-            return PageResult.of(total, logs);
+            return PageResult.of(total, logs, Long.valueOf(queryDTO.getPage()), Long.valueOf(queryDTO.getSize()));
 
         } catch (BusinessException e) {
             throw e;

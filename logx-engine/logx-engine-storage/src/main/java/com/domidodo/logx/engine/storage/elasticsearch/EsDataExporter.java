@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Elasticsearch 数据导出服务（修复版）
+ * Elasticsearch 数据导出服务
  * 使用 Scroll API 分批导出大量数据
  */
 @Slf4j

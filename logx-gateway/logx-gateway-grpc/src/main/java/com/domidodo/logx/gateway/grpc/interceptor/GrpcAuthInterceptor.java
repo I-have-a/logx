@@ -110,8 +110,6 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
      * 验证 API Key
      */
     private boolean validateApiKey(String apiKey, String tenantId, String systemId) {
-        // 这里应该查询数据库验证 API Key 是否有效
-        // 暂时简单返回 true
         log.debug("验证 API Key：apiKey={}，tenantId={}，systemId={}", apiKey, tenantId, systemId);
         TenantContext.setIgnoreTenant(true);
         boolean b = validateMapper.validateApiKey(apiKey, tenantId, systemId) >= 1;

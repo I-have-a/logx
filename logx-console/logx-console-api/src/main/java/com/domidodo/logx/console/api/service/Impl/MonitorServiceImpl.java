@@ -1,11 +1,13 @@
 package com.domidodo.logx.console.api.service.Impl;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import co.elastic.clients.json.JsonData;
 import com.domidodo.logx.common.context.TenantContext;
 import com.domidodo.logx.common.result.PageResult;
@@ -139,6 +141,7 @@ public class MonitorServiceImpl implements MonitorService {
     @Override
     public SystemStatusDTO getSystemStatus(String systemId) {
         try {
+            TenantContext.setIgnoreTenant(true);
             System system = systemMapper.selectBySystemId(systemId);
             if (system == null) {
                 throw new RuntimeException("系统不存在");
@@ -205,6 +208,7 @@ public class MonitorServiceImpl implements MonitorService {
 
     @Override
     public String exportCrossSystemLogs(CrossSystemQueryDTO queryDTO) {
+        TenantContext.setIgnoreTenant(true);
         String taskId = "export_task_" + java.lang.System.currentTimeMillis();
 
         // 异步执行导出
@@ -285,6 +289,7 @@ public class MonitorServiceImpl implements MonitorService {
                                                             LocalDateTime startTime,
                                                             LocalDateTime endTime) {
         try {
+            TenantContext.setIgnoreTenant(true);
             List<FrequentExceptionDTO> exceptions = new ArrayList<>();
             TenantContext.setIgnoreTenant(true);
 
@@ -352,8 +357,12 @@ public class MonitorServiceImpl implements MonitorService {
         return new ArrayList<>();
     }
 
+    /**
+     * 获取异常趋势（优化版）
+     */
     @Override
     public List<ExceptionTrendPoint> getExceptionTrend(Integer days) {
+        TenantContext.setIgnoreTenant(true);
         List<ExceptionTrendPoint> trend = new ArrayList<>();
 
         try {
@@ -371,8 +380,7 @@ public class MonitorServiceImpl implements MonitorService {
                 long totalCount = countExceptions(startTime, endTime);
                 point.setTotalCount(totalCount);
 
-                // 统计各级别日志
-                // 查询ES获取各级别统计
+                // 统计各级别日志（添加错误处理）
                 try {
                     TenantContext.setIgnoreTenant(true);
                     List<System> systems = systemMapper.selectAllEnabled();
@@ -384,30 +392,24 @@ public class MonitorServiceImpl implements MonitorService {
                     for (System system : systems) {
                         String indexPattern = buildIndexPattern(system.getTenantId(), system.getSystemId());
 
-                        SearchRequest searchRequest = SearchRequest.of(s -> s
-                                .index(indexPattern)
-                                .size(0)
-                                .query(q -> q.range(r -> r
-                                        .field("timestamp")
-                                        .gte(JsonData.of(formatDateTime(startTime)))
-                                        .lte(JsonData.of(formatDateTime(endTime)))
-                                ))
-                                .aggregations("level_stats", a -> a
-                                        .terms(t -> t.field("level").size(10))
-                                )
-                        );
+                        // 【关键改进】检查索引是否存在
+                        if (!checkIndexExists(indexPattern)) {
+                            log.debug("索引不存在，跳过: {}", indexPattern);
+                            continue;
+                        }
 
-                        SearchResponse<Map> response = elasticsearchClient.search(searchRequest, Map.class);
-                        var levelBuckets = response.aggregations().get("level_stats").sterms().buckets().array();
+                        try {
+                            // 查询级别统计
+                            Map<String, Long> levelCounts = queryLevelCounts(
+                                    indexPattern, startTime, endTime);
 
-                        for (var bucket : levelBuckets) {
-                            String level = bucket.key().stringValue();
-                            long count = bucket.docCount();
-                            switch (level) {
-                                case "ERROR" -> criticalCount += count;
-                                case "WARN" -> warningCount += count;
-                                case "INFO" -> infoCount += count;
-                            }
+                            criticalCount += levelCounts.getOrDefault("ERROR", 0L);
+                            warningCount += levelCounts.getOrDefault("WARN", 0L);
+                            infoCount += levelCounts.getOrDefault("INFO", 0L);
+
+                        } catch (ElasticsearchException e) {
+                            log.warn("查询索引 {} 失败: {}", indexPattern, e.getMessage());
+                            // 继续处理下一个系统，不中断整个流程
                         }
                     }
 
@@ -415,12 +417,14 @@ public class MonitorServiceImpl implements MonitorService {
                     point.setWarningCount(warningCount);
                     point.setInfoCount(infoCount);
 
-                } catch (Exception ex) {
-                    log.warn("统计各级别日志失败: {}", date, ex);
+                } catch (Exception e) {
+                    log.warn("统计各级别日志失败: {}", date, e);
+                    // 设置默认值，不中断整个流程
                     point.setCriticalCount(0L);
                     point.setWarningCount(0L);
                     point.setInfoCount(0L);
                 }
+
                 trend.add(point);
             }
 
@@ -429,6 +433,182 @@ public class MonitorServiceImpl implements MonitorService {
         }
 
         return trend;
+    }
+
+    /**
+     * 查询级别统计（优化版）
+     */
+    private Map<String, Long> queryLevelCounts(String indexPattern,
+                                               LocalDateTime startTime,
+                                               LocalDateTime endTime) {
+        Map<String, Long> levelCounts = new HashMap<>();
+
+        try {
+            SearchRequest searchRequest = SearchRequest.of(s -> s
+                    .index(indexPattern)
+                    .size(0)
+                    .query(q -> q.range(r -> r
+                            .field("timestamp")
+                            .gte(JsonData.of(formatDateTime(startTime)))
+                            .lte(JsonData.of(formatDateTime(endTime)))
+                    ))
+                    .aggregations("level_stats", a -> a
+                            .terms(t -> t.field("level").size(10))
+                    )
+            );
+
+            SearchResponse<Map> response = elasticsearchClient.search(searchRequest, Map.class);
+
+            if (response.aggregations() != null && response.aggregations().get("level_stats") != null) {
+                var levelBuckets = response.aggregations().get("level_stats").sterms().buckets().array();
+
+                for (var bucket : levelBuckets) {
+                    String level = bucket.key().stringValue();
+                    long count = bucket.docCount();
+                    levelCounts.put(level, count);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("查询级别统计失败: {}", indexPattern, e);
+        }
+
+        return levelCounts;
+    }
+
+    /**
+     * 【关键方法】检查索引是否存在
+     */
+    private boolean checkIndexExists(String indexPattern) {
+        try {
+            // 使用exists API检查索引
+            ExistsRequest request = ExistsRequest.of(b -> b.index(indexPattern));
+            boolean exists = elasticsearchClient.indices().exists(request).value();
+
+            if (!exists) {
+                log.debug("索引不存在: {}", indexPattern);
+            }
+
+            return exists;
+
+        } catch (Exception e) {
+            log.warn("检查索引存在性失败: {}", indexPattern, e);
+            // 保守起见，返回false
+            return false;
+        }
+    }
+
+    /**
+     * 统计异常数量（添加索引检查）
+     */
+    private long countExceptions(LocalDateTime startTime, LocalDateTime endTime) {
+        try {
+            TenantContext.setIgnoreTenant(true);
+            List<System> systems = systemMapper.selectAllEnabled();
+
+            long totalCount = 0;
+
+            for (System system : systems) {
+                String indexPattern = buildIndexPattern(system.getTenantId(), system.getSystemId());
+
+                // 【关键改进】检查索引是否存在
+                if (!checkIndexExists(indexPattern)) {
+                    log.debug("索引不存在，跳过统计: {}", indexPattern);
+                    continue;
+                }
+
+                try {
+                    long count = countExceptionsInIndex(indexPattern, startTime, endTime);
+                    totalCount += count;
+                } catch (ElasticsearchException e) {
+                    if (e.getMessage().contains("all shards failed")) {
+                        log.error("索引所有分片失败: {}, 可能索引已损坏或被删除", indexPattern);
+                    } else {
+                        log.warn("统计索引异常失败: {}", indexPattern, e);
+                    }
+                    // 继续处理下一个索引
+                }
+            }
+
+            return totalCount;
+
+        } catch (Exception e) {
+            log.error("统计异常数量失败", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 统计单个索引的异常数量
+     */
+    private long countExceptionsInIndex(String indexPattern,
+                                        LocalDateTime startTime,
+                                        LocalDateTime endTime) throws Exception {
+        SearchRequest searchRequest = SearchRequest.of(s -> s
+                .index(indexPattern)
+                .size(0)
+                .query(q -> q.bool(b -> b
+                        .filter(f -> f.range(r -> r
+                                .field("timestamp")
+                                .gte(JsonData.of(formatDateTime(startTime)))
+                                .lte(JsonData.of(formatDateTime(endTime)))
+                        ))
+                        .filter(f -> f.term(t -> t.field("level").value("ERROR")))
+                ))
+        );
+
+        SearchResponse<Map> response = elasticsearchClient.search(searchRequest, Map.class);
+        return response.hits().total().value();
+    }
+
+    /**
+     * 获取索引健康状态
+     */
+    public Map<String, Object> getIndexHealth(String indexPattern) {
+        Map<String, Object> health = new HashMap<>();
+
+        try {
+            boolean exists = checkIndexExists(indexPattern);
+            health.put("exists", exists);
+            health.put("indexPattern", indexPattern);
+
+            if (exists) {
+                // 可以添加更多健康检查逻辑
+                health.put("status", "OK");
+            } else {
+                health.put("status", "NOT_FOUND");
+            }
+
+        } catch (Exception e) {
+            log.error("获取索引健康状态失败: {}", indexPattern, e);
+            health.put("status", "ERROR");
+            health.put("error", e.getMessage());
+        }
+
+        return health;
+    }
+
+    /**
+     * 批量检查索引状态
+     */
+    public Map<String, Boolean> batchCheckIndices() {
+        Map<String, Boolean> indexStatus = new HashMap<>();
+
+        try {
+            TenantContext.setIgnoreTenant(true);
+            List<System> systems = systemMapper.selectAllEnabled();
+
+            for (System system : systems) {
+                String indexPattern = buildIndexPattern(system.getTenantId(), system.getSystemId());
+                boolean exists = checkIndexExists(indexPattern);
+                indexStatus.put(indexPattern, exists);
+            }
+
+        } catch (Exception e) {
+            log.error("批量检查索引状态失败", e);
+        }
+
+        return indexStatus;
     }
 
     @Override
@@ -668,6 +848,7 @@ public class MonitorServiceImpl implements MonitorService {
     @Override
     public SystemHealthDTO getSystemHealth(String systemId, Integer hours) {
         try {
+            TenantContext.setIgnoreTenant(true);
             System system = systemMapper.selectBySystemId(systemId);
             if (system == null) {
                 throw new RuntimeException("系统不存在");
@@ -1059,24 +1240,6 @@ public class MonitorServiceImpl implements MonitorService {
         }
         double rate = ((double) (current - previous) / previous) * 100;
         return Math.round(rate * 100.0) / 100.0;
-    }
-
-    private long countExceptions(LocalDateTime startTime, LocalDateTime endTime) {
-        try {
-            TenantContext.setIgnoreTenant(true);
-            List<System> systems = systemMapper.selectAllEnabled();
-
-            long totalCount = 0;
-            for (System system : systems) {
-                totalCount += countSystemExceptions(system.getTenantId(),
-                        system.getSystemId(), startTime, endTime);
-            }
-
-            return totalCount;
-        } catch (Exception e) {
-            log.error("统计异常总数失败", e);
-        }
-        return 0L;
     }
 
     private long countSystemExceptions(String tenantId, String systemId,

@@ -12,11 +12,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 日志解析器（修复版）
+ * 日志解析器
  * 负责：
  * 1. JSON 解析
  * 2. 字段标准化
- * 3. 敏感信息脱敏（增强版）
+ * 3. 敏感信息脱敏
  * 4. 字段补全
  */
 @Slf4j
@@ -189,13 +189,13 @@ public class LogParser {
         }
 
         // 脱敏 IP地址（保留前两段）
-        String ip = (String) logMap.get("ip");
-        if (ip != null && ip.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
-            String[] parts = ip.split("\\.");
-            if (parts.length == 4) {
-                logMap.put("ip", parts[0] + "." + parts[1] + ".*.*");
-            }
-        }
+//        String ip = (String) logMap.get("ip");
+//        if (ip != null && ip.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
+//            String[] parts = ip.split("\\.");
+//            if (parts.length == 4) {
+//                logMap.put("ip", parts[0] + "." + parts[1] + ".*.*");
+//            }
+//        }
     }
 
     /**
@@ -255,6 +255,16 @@ public class LogParser {
             }
         }
         bankCardMatcher.appendTail(result);
+        text = result.toString();
+
+        // IP地址脱敏：192.168.*.*
+        Matcher ipMatcher = IP_PATTERN.matcher(text);
+        while (ipMatcher.find()) {
+            String ip = ipMatcher.group();
+            String masked = ip.replaceAll("\\d+", "*");
+            ipMatcher.appendReplacement(result, Matcher.quoteReplacement(masked));
+        }
+        ipMatcher.appendTail(result);
         text = result.toString();
 
         return text;
