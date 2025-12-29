@@ -1,12 +1,17 @@
 package com.domidodo.logx.gateway.grpc.interceptor;
 
+import com.domidodo.logx.common.constant.SystemConstant;
 import com.domidodo.logx.common.context.TenantContext;
 import com.domidodo.logx.gateway.grpc.mapper.ValidateMapper;
 import io.grpc.*;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * gRPC 认证拦截器
@@ -31,6 +36,9 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
 
     private static final Metadata.Key<String> SYSTEM_ID_METADATA_KEY =
             Metadata.Key.of("X-System-Id", Metadata.ASCII_STRING_MARSHALLER);
+    @Qualifier("redisTemplate")
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
@@ -111,8 +119,16 @@ public class GrpcAuthInterceptor implements ServerInterceptor {
      */
     private boolean validateApiKey(String apiKey, String tenantId, String systemId) {
         log.debug("验证 API Key：apiKey={}，tenantId={}，systemId={}", apiKey, tenantId, systemId);
+        if (redisTemplate.opsForValue().get(SystemConstant.REDIS_KEY_API_KEY + tenantId + ":" + systemId + ":" + apiKey) != null) {
+            return true;
+        }
         TenantContext.setIgnoreTenant(true);
         boolean b = validateMapper.validateApiKey(apiKey, tenantId, systemId) >= 1;
+        if (b) {
+            redisTemplate.opsForValue().set(SystemConstant.REDIS_KEY_API_KEY + tenantId + ":" + systemId + ":" + apiKey,
+                    "1",
+                    SystemConstant.LOG_RETENTION_DAYS, TimeUnit.DAYS);
+        }
         TenantContext.setIgnoreTenant(false);
         return b;
 

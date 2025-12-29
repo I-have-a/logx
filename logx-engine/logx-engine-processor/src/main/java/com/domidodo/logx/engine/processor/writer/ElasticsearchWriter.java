@@ -288,7 +288,7 @@ public class ElasticsearchWriter {
     }
 
     /**
-     * 生成索引名称（安全版本）
+     * 生成索引名称
      * 格式：logx-logs-{tenantId}-{systemId}-{yyyy.MM.dd}
      */
     private String generateIndexName(Map<String, Object> logOne) {

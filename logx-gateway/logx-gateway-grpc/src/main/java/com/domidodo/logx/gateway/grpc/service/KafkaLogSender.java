@@ -41,13 +41,13 @@ public class KafkaLogSender {
 
             kafkaTemplate.send(logTopic, key, logJson)
                     .whenComplete((result, ex) -> {
-//                        if (ex != null) {
-//                            log.error("无法将日志发送到Kafka", ex);
-//                        } else {
-//                            log.debug("日志发送到Kafka：分区={}，偏移量={}",
-//                                    result.getRecordMetadata().partition(),
-//                                    result.getRecordMetadata().offset());
-//                        }
+                        if (ex != null) {
+                            log.error("无法将日志发送到Kafka", ex);
+                        } else {
+                            log.debug("日志发送到Kafka：分区={}，偏移量={}",
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        }
                     });
 
             return true;

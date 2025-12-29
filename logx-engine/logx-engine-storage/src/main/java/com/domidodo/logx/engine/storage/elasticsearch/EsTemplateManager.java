@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -190,15 +189,47 @@ public class EsTemplateManager {
      * 注意：需要 X-Pack 许可证
      */
     public void createLifecyclePolicy() {
+        String templateName = storageConfig.getIndex().getPrefix() + TEMPLATE_NAME_SUFFIX;
+        String indexPattern = storageConfig.getIndex().getPrefix() + "-*";
         String policyName = storageConfig.getIndex().getPrefix() + POLICY_NAME_SUFFIX;
 
         try {
             log.info("创建生命周期策略: {}", policyName);
 
-            // 使用低级客户端创建 ILM 策略
             // 这需要 X-Pack 支持，如果没有许可证会失败
+            // 构建模板
+            PutIndexTemplateRequest request = PutIndexTemplateRequest.of(t -> t
+                    .name(templateName)
+                    .indexPatterns(indexPattern)
+                    .template(template -> template
+                            .settings(settings -> settings
+                                    .numberOfShards(String.valueOf(storageConfig.getIndex().getShards()))
+                                    .numberOfReplicas(String.valueOf(storageConfig.getIndex().getReplicas()))
+                                    .refreshInterval(time -> time.time(storageConfig.getIndex().getRefreshInterval()))
+                                    // 压缩设置
+                                    .codec(storageConfig.getCompression().getEnabled() ? "best_compression" : "default")
+                                    // 其他优化设置
+                                    .maxResultWindow(10000)
+                                    // 应用 ILM 策略
+                                    .lifecycle(lifecycle -> lifecycle
+                                            .name(policyName)
+                                            .rolloverAlias(storageConfig.getIndex().getPrefix())
+                                    )
+                            )
+                            .mappings(buildTemplateMappings())
+                            .aliases(storageConfig.getIndex().getPrefix(), a -> a)
+                    )
+                    .priority(200)
+            );
+            // 执行创建
+            PutIndexTemplateResponse response = elasticsearchClient.indices()
+                    .putIndexTemplate(request);
 
-            log.info("生命周期策略创建已跳过（需要 X-Pack 许可证）");
+            if (response.acknowledged()) {
+                log.info("索引模板创建成功: {}", templateName);
+            } else {
+                log.warn("索引模板创建未确认: {}", templateName);
+            }
 
         } catch (Exception e) {
             log.warn("创建生命周期策略失败: {}", policyName, e);

@@ -72,7 +72,7 @@ public class ChunkedDataExporter {
                             totalCount.incrementAndGet();
 
                             // 每处理 10000 条刷新一次
-                            if (totalCount.get() % 10000 == 0) {
+                            if (totalCount.get() % CHUNK_SIZE == 0) {
                                 writer.flush();
                                 log.info("已处理 {} 条文档", totalCount.get());
                             }

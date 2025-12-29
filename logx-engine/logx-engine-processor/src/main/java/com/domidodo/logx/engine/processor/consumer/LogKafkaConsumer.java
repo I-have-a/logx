@@ -92,7 +92,7 @@ public class LogKafkaConsumer {
             // 2. 批量写入 Elasticsearch
             boolean writeSuccess = writeWithRetry(parseResult.validLogs);
 
-            // 3. 【关键修复】转发到 Detection 模块
+            // 3. 转发到 Detection 模块
             boolean forwardSuccess = false;
             if (writeSuccess) {
                 forwardSuccess = forwardToDetection(parseResult.validLogs);
@@ -117,9 +117,7 @@ public class LogKafkaConsumer {
                 if (!writeSuccess) {
                     log.error("{} 次重试后，无法将日志写入ES", maxRetries);
                 }
-                if (!forwardSuccess) {
-                    log.error("未能将日志转发到检测模块");
-                }
+                log.error("未能将日志转发到检测模块");
 
                 // 发送到死信队列
                 sendToDeadLetterQueue(messages, "写入ES或转发失败");
@@ -145,7 +143,7 @@ public class LogKafkaConsumer {
     }
 
     /**
-     * 【关键方法】转发到 Detection 模块
+     * 转发到 Detection 模块
      */
     private boolean forwardToDetection(List<Map<String, Object>> logs) {
         if (kafkaTemplate == null) {

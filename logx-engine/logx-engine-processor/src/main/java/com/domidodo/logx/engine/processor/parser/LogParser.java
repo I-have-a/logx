@@ -78,7 +78,7 @@ public class LogParser {
         // 2. 标准化处理
         Map<String, Object> normalized = normalize(logMap);
 
-        // 3. 敏感信息脱敏（增强版）
+        // 3. 敏感信息脱敏
         desensitizeEnhanced(normalized);
 
         // 4. 字段补全
@@ -158,7 +158,7 @@ public class LogParser {
     }
 
     /**
-     * 敏感信息脱敏（增强版）
+     * 敏感信息脱敏
      */
     private void desensitizeEnhanced(Map<String, Object> logMap) {
         // 脱敏 message
@@ -293,7 +293,7 @@ public class LogParser {
     }
 
     /**
-     * 解析时间戳（修复版 - 支持多种格式）
+     * 解析时间戳（支持多种格式）
      */
     private LocalDateTime parseTimestamp(Object timestamp) {
         if (timestamp == null) {
