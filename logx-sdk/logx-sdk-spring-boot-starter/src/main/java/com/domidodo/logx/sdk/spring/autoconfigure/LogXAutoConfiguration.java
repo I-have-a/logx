@@ -46,22 +46,29 @@ public class LogXAutoConfiguration {
                 .apiKey(properties.getApiKey())
                 .mode(properties.getMode())
                 .bufferEnabled(properties.getBuffer().isEnabled())
-                .bufferSize(properties.getBuffer().getSize());
+                .bufferSize(properties.getBuffer().getSize())
+                .flushInterval(properties.getBuffer().getFlushInterval());
 
         // 根据模式设置网关配置
         if ("grpc".equalsIgnoreCase(properties.getMode())) {
             builder.grpcEndpoint(
+                            properties.getGateway().getHost(),
+                            properties.getGateway().getPort()
+                    )
+                    .batchMode(properties.getGateway().getBatchMode());
+
+            log.info("LogX SDK 使用 gRPC 模式 [{}:{}, batchMode={}]",
                     properties.getGateway().getHost(),
-                    properties.getGateway().getPort()
-            );
-            log.info("LogX SDK 使用 gRPC 模式 [{}:{}]",
-                    properties.getGateway().getHost(),
-                    properties.getGateway().getPort());
+                    properties.getGateway().getPort(),
+                    properties.getGateway().getBatchMode());
         } else {
             builder.gatewayUrl(properties.getGateway().getUrl());
             log.info("LogX SDK 使用 HTTP 模式 [{}]",
                     properties.getGateway().getUrl());
         }
+
+        builder.connectTimeout(properties.getGateway().getConnectTimeout())
+                .readTimeout(properties.getGateway().getReadTimeout());
 
         // 构建客户端
         logXClient = builder.build();
@@ -69,8 +76,12 @@ public class LogXAutoConfiguration {
         // 初始化静态日志记录器
         LogXLogger.initClient(logXClient);
 
-        log.info("LogX SDK 初始化完成 [租户:{}, 系统:{}]",
-                properties.getTenantId(), properties.getSystemName());
+        log.info("LogX SDK 初始化完成 [租户:{}, 系统:{}, 缓冲:{}(size={}, interval={})]",
+                properties.getTenantId(),
+                properties.getSystemName(),
+                properties.getBuffer().isEnabled(),
+                properties.getBuffer().getSize(),
+                properties.getBuffer().getFlushInterval());
 
         return logXClient;
     }
@@ -114,7 +125,10 @@ public class LogXAutoConfiguration {
     public LogAspect logAspect(LogXClient logXClient,
                                LogXProperties properties,
                                UserContextProvider userContextProvider) {
-        log.info("启用 LogX AOP 自动日志收集");
+        log.info("启用 LogX AOP 自动日志收集 [controller={}, service={}, slowThreshold={}ms]",
+                properties.getAspect().isController(),
+                properties.getAspect().isService(),
+                properties.getAspect().getSlowThreshold());
         return new LogAspect(logXClient, properties, userContextProvider);
     }
 

@@ -394,18 +394,52 @@ public class LogXClient {
             return this;
         }
 
-        public Builder batchMode(String match) {
-            config.setBatchMode(match);
+        /**
+         * 设置批量传输模式（batch | stream）
+         * @param mode 批量模式
+         */
+        public Builder batchMode(String mode) {
+            config.setBatchMode(mode);
             return this;
         }
 
+        /**
+         * 设置刷新间隔
+         */
         public Builder flushInterval(Duration interval) {
             config.setFlushInterval(interval);
             return this;
         }
 
+        /**
+         * 设置连接超时时间（毫秒）
+         */
         public Builder connectTimeout(int timeout) {
             config.setConnectTimeout(timeout);
+            return this;
+        }
+
+        /**
+         * 设置读取超时时间（毫秒）
+         */
+        public Builder readTimeout(int timeout) {
+            config.setReadTimeout(timeout);
+            return this;
+        }
+
+        /**
+         * 设置最大重试次数
+         */
+        public Builder maxRetries(int maxRetries) {
+            config.setMaxRetries(maxRetries);
+            return this;
+        }
+
+        /**
+         * 设置 gRPC 最大入站消息大小
+         */
+        public Builder grpcMaxInboundMessageSize(int size) {
+            config.setGrpcMaxInboundMessageSize(size);
             return this;
         }
 

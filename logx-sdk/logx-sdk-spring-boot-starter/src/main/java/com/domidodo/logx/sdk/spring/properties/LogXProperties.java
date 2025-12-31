@@ -5,7 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * LogX 配置属性
@@ -36,7 +38,7 @@ public class LogXProperties {
     private String systemName;
 
     /**
-     * API密钥（用于认证）
+     * API密钥（用于认证,由服务端生成后交由客户端）
      */
     private String apiKey;
 
@@ -64,6 +66,11 @@ public class LogXProperties {
      * 用户上下文配置
      */
     private UserContext userContext = new UserContext();
+
+    /**
+     * 模块配置
+     */
+    private Module module = new Module();
 
     @Data
     public static class Gateway {
@@ -205,5 +212,43 @@ public class LogXProperties {
          * 如果配置了此项，将使用自定义实现
          */
         private String customProviderBeanName;
+    }
+
+    /**
+     * 模块配置
+     */
+    @Data
+    public static class Module {
+        /**
+         * 是否启用模块映射
+         */
+        private boolean enabled = true;
+
+        /**
+         * 包名到模块名的映射
+         * 示例：
+         * logx.module.package-mapping.com.example.order = 订单模块
+         * logx.module.package-mapping.com.example.user = 用户模块
+         */
+        private Map<String, String> packageMapping = new HashMap<>();
+
+        /**
+         * 类名到模块名的映射（全限定类名）
+         * 示例：
+         * logx.module.class-mapping.com.example.order.controller.OrderController = 订单管理
+         */
+        private Map<String, String> classMapping = new HashMap<>();
+
+        /**
+         * 默认模块名（当无法确定模块时使用）
+         */
+        private String defaultModule = "default";
+
+        /**
+         * 是否使用简化的类名作为模块名
+         * true: OrderController -> order
+         * false: 使用包名提取
+         */
+        private boolean useSimpleClassName = false;
     }
 }
