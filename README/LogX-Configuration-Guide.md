@@ -294,11 +294,11 @@ spring:
     password: root123
 
   # Elasticsearch查询
-  data:
-    elasticsearch:
-      uris: http://localhost:9200
-      username: elastic
-      password: 8rc3Jl1jlAK3uVZZyhF4
+  
+elasticsearch:
+  uris: http://localhost:9200
+  username: elastic
+  password: 8rc3Jl1jlAK3uVZZyhF4
 
   # Redis缓存
   data:

@@ -40,7 +40,6 @@ public class LogDTO implements Serializable {
 
     private Map<String, Object> context;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
 
     private Long responseTime;

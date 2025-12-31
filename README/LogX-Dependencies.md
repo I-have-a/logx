@@ -21,6 +21,7 @@ logx-sdk-core (纯 Java 应用)
 ```
 
 **Maven 依赖：**
+
 ```xml
 <!-- Spring Boot 应用 -->
 <dependency>
@@ -29,7 +30,7 @@ logx-sdk-core (纯 Java 应用)
     <version>0.0.1-SNAPSHOT</version>
 </dependency>
 
-<!-- 纯 Java 应用 -->
+        <!-- 纯 Java 应用 -->
 <dependency>
     <groupId>com.domidodo</groupId>
     <artifactId>logx-sdk-core</artifactId>
@@ -152,31 +153,31 @@ logx-standalone (集成所有服务)
 
 ### 框架版本
 
-| 框架 | 版本 | 说明 |
-|------|------|------|
-| JDK | 17 | 最低版本要求 |
-| Spring Boot | 3.2.2 | 主框架 |
+| 框架           | 版本       | 说明         |
+|--------------|----------|------------|
+| JDK          | 17       | 最低版本要求     |
+| Spring Boot  | 3.2.2    | 主框架        |
 | Spring Cloud | 2023.0.0 | 微服务组件 (可选) |
-| Maven | 3.8+ | 构建工具 |
+| Maven        | 3.8+     | 构建工具       |
 
 ### 核心依赖
 
-| 组件 | 版本 | 用途 |
-|------|------|------|
-| mybatis-plus | 3.5.7 | ORM 框架 |
-| druid | 1.2.27 | 数据库连接池 |
-| hutool | 5.8.34 | Java 工具集 |
-| fastjson2 | 2.0.54 | JSON 处理 |
-| knife4j | 4.5.0 | API 文档 |
-| redisson | 3.37.0 | Redis 客户端 |
-| easyexcel | 4.0.3 | Excel 处理 |
+| 组件           | 版本     | 用途        |
+|--------------|--------|-----------|
+| mybatis-plus | 3.5.7  | ORM 框架    |
+| druid        | 1.2.27 | 数据库连接池    |
+| hutool       | 5.8.34 | Java 工具集  |
+| fastjson2    | 2.0.54 | JSON 处理   |
+| knife4j      | 4.5.0  | API 文档    |
+| redisson     | 3.37.0 | Redis 客户端 |
+| easyexcel    | 4.0.3  | Excel 处理  |
 
 ### gRPC 依赖 (可选)
 
-| 组件 | 版本 | 用途 |
-|------|------|------|
-| grpc | 1.59.0 | gRPC 核心 |
-| protobuf | 3.24.0 | 协议缓冲 |
+| 组件               | 版本             | 用途             |
+|------------------|----------------|----------------|
+| grpc             | 1.59.0         | gRPC 核心        |
+| protobuf         | 3.24.0         | 协议缓冲           |
 | grpc-spring-boot | 2.15.0.RELEASE | Spring Boot 集成 |
 
 ---
@@ -185,18 +186,18 @@ logx-standalone (集成所有服务)
 
 ### 必需中间件
 
-| 中间件 | 最低版本 | 推荐版本 | 最小资源 | 用途 |
-|--------|---------|---------|---------|------|
-| MySQL | 5.7+ | 8.0+ | 512MB | 配置存储 |
-| Elasticsearch | 7.x+ | 8.11.0+ | 2GB | 日志存储 |
-| Kafka | 2.8+ | 3.5+ | 1GB | 消息队列 |
-| Redis | 5.0+ | 7.0+ | 256MB | 缓存/限流 |
+| 中间件           | 最低版本 | 推荐版本    | 最小资源  | 用途    |
+|---------------|------|---------|-------|-------|
+| MySQL         | 5.7+ | 8.0+    | 512MB | 配置存储  |
+| Elasticsearch | 7.x+ | 8.11.0+ | 2GB   | 日志存储  |
+| Kafka         | 2.8+ | 3.5+    | 1GB   | 消息队列  |
+| Redis         | 5.0+ | 7.0+    | 256MB | 缓存/限流 |
 
 ### 可选中间件
 
-| 中间件 | 版本 | 用途 |
-|--------|------|------|
-| MinIO | 最新 | 冷数据归档 |
+| 中间件       | 版本   | 用途       |
+|-----------|------|----------|
+| MinIO     | 最新   | 冷数据归档    |
 | Zookeeper | 3.8+ | Kafka 依赖 |
 
 ---
@@ -271,11 +272,13 @@ CPU:    4 核+
 ### Q1: SDK 依赖冲突
 
 **问题：** FastJSON 版本冲突
+
 ```
 Caused by: java.lang.NoSuchMethodError: com.alibaba.fastjson2.JSON.toJSONString
 ```
 
 **解决：**
+
 ```xml
 <!-- 排除旧版本 -->
 <dependency>
@@ -294,12 +297,15 @@ Caused by: java.lang.NoSuchMethodError: com.alibaba.fastjson2.JSON.toJSONString
 ### Q2: gRPC 依赖问题
 
 **问题：** gRPC 版本不兼容
+
 ```
 io.grpc.StatusRuntimeException: UNAVAILABLE
 ```
 
 **解决：** 统一使用根 pom 定义的版本
+
 ```xml
+
 <properties>
     <grpc.version>1.59.0</grpc.version>
 </properties>
@@ -308,6 +314,7 @@ io.grpc.StatusRuntimeException: UNAVAILABLE
 ### Q3: Spring Boot 3.x 兼容性
 
 **注意：** 使用 Spring Boot 3.x 需要：
+
 - JDK 17+
 - Jakarta EE (不是 javax)
 - MyBatis Plus 3.5.7+ (支持 Spring Boot 3)
@@ -331,7 +338,9 @@ io.grpc.StatusRuntimeException: UNAVAILABLE
 ### 2. 减少 SDK 体积
 
 如果只需要 HTTP 协议，可以排除 gRPC：
+
 ```xml
+
 <dependency>
     <groupId>com.domidodo</groupId>
     <artifactId>logx-sdk-core</artifactId>
@@ -347,6 +356,6 @@ io.grpc.StatusRuntimeException: UNAVAILABLE
 
 ### 3. 按需引入中间件
 
-不使用归档功能时，可以不启动 MinIO。 
+不使用归档功能时，可以不启动 MinIO。
 
 不使用 gRPC 时，可以不部署 logx-gateway-grpc。
