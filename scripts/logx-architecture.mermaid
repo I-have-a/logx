@@ -1,0 +1,104 @@
+graph TB
+    subgraph "客户端应用"
+        APP[应用程序]
+    end
+
+    subgraph "SDK 层"
+        SDK_STARTER[logx-sdk-spring-boot-starter]
+        SDK_CORE[logx-sdk-core]
+        SDK_STARTER --> SDK_CORE
+    end
+
+    subgraph "网关层"
+        GW_HTTP[logx-gateway-http<br/>:10240]
+        GW_GRPC[logx-gateway-grpc<br/>:10241]
+    end
+
+    subgraph "处理引擎层"
+        ENGINE_PROC[logx-engine-processor<br/>日志解析/标准化]
+        ENGINE_STORAGE[logx-engine-storage<br/>生命周期管理]
+        ENGINE_DETECT[logx-engine-detection<br/>异常检测/告警]
+    end
+
+    subgraph "管理控制台"
+        CONSOLE[logx-console-api<br/>:8083]
+    end
+
+    subgraph "基础设施"
+        INFRA[logx-infrastructure<br/>ES/Kafka/Redis配置]
+    end
+
+    subgraph "公共模块"
+        COMMON_CORE[logx-common-core<br/>工具类/DTO]
+        COMMON_API[logx-common-api<br/>接口定义]
+        COMMON_GRPC[logx-common-grpc<br/>gRPC协议]
+    end
+
+    subgraph "中间件"
+        KAFKA[Kafka<br/>消息队列]
+        ES[Elasticsearch<br/>日志存储]
+        REDIS[Redis<br/>缓存/限流]
+        MYSQL[MySQL<br/>配置存储]
+    end
+
+    %% 应用集成
+    APP -->|HTTP| GW_HTTP
+    APP -->|gRPC| GW_GRPC
+    APP -.->|依赖| SDK_STARTER
+
+    %% 网关依赖
+    GW_HTTP --> INFRA
+    GW_HTTP --> COMMON_CORE
+    GW_HTTP --> COMMON_API
+    GW_GRPC --> INFRA
+    GW_GRPC --> COMMON_GRPC
+
+    %% 引擎依赖
+    ENGINE_PROC --> INFRA
+    ENGINE_PROC --> COMMON_CORE
+    ENGINE_STORAGE --> INFRA
+    ENGINE_STORAGE --> COMMON_CORE
+    ENGINE_DETECT --> INFRA
+    ENGINE_DETECT --> COMMON_CORE
+
+    %% 控制台依赖
+    CONSOLE --> INFRA
+    CONSOLE --> COMMON_CORE
+    CONSOLE --> COMMON_API
+
+    %% 基础设施依赖
+    INFRA --> COMMON_CORE
+
+    %% 数据流
+    GW_HTTP -.->|写入| KAFKA
+    GW_GRPC -.->|写入| KAFKA
+    KAFKA -.->|消费| ENGINE_PROC
+    ENGINE_PROC -.->|存储| ES
+    ENGINE_PROC -.->|触发| ENGINE_DETECT
+    ENGINE_STORAGE -.->|管理| ES
+    CONSOLE -.->|查询| ES
+    CONSOLE -.->|配置| MYSQL
+
+    %% 中间件依赖
+    GW_HTTP -.-> REDIS
+    ENGINE_PROC -.-> KAFKA
+    ENGINE_PROC -.-> ES
+    ENGINE_DETECT -.-> ES
+    ENGINE_STORAGE -.-> ES
+    CONSOLE -.-> MYSQL
+
+    classDef sdkStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef gatewayStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef engineStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef consoleStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef infraStyle fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef commonStyle fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    classDef middlewareStyle fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+
+    class SDK_STARTER,SDK_CORE sdkStyle
+    class GW_HTTP,GW_GRPC gatewayStyle
+    class ENGINE_PROC,ENGINE_STORAGE,ENGINE_DETECT engineStyle
+    class CONSOLE consoleStyle
+    class INFRA infraStyle
+    class COMMON_CORE,COMMON_API,COMMON_GRPC commonStyle
+    class KAFKA,ES,REDIS,MYSQL middlewareStyle

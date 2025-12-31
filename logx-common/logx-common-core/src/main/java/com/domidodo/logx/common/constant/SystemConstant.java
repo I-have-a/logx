@@ -125,9 +125,9 @@ public interface SystemConstant {
     int HOT_DATA_RETENTION_DAYS = 7;
 
     /**
-     * 冷数据保留天数（默认30天）
+     * 冷数据保留天数（默认90天）
      */
-    int COLD_DATA_RETENTION_DAYS = 30;
+    int COLD_DATA_RETENTION_DAYS = 90;
 
     // ================================
     // 系统状态

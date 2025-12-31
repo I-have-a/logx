@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Select;
 import java.util.List;
 
 /**
- * 规则 Mapper（修复版）
+ * 规则 Mapper
  */
 @Mapper
 public interface RuleMapper extends BaseMapper<Rule> {
@@ -25,8 +25,8 @@ public interface RuleMapper extends BaseMapper<Rule> {
               AND status = 1
             ORDER BY create_time DESC""")
     List<Rule> selectEnabledRules(
-            @Param("tenantId") String tenantId,  // ✅ String，不是Long
-            @Param("systemId") String systemId   // ✅ String，不是Long
+            @Param("tenantId") String tenantId,
+            @Param("systemId") String systemId
     );
 
     /**

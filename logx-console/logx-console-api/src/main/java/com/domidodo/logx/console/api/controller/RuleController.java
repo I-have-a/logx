@@ -82,6 +82,12 @@ public class RuleController {
 
             if (systemId != null && !systemId.isEmpty()) {
                 wrapper.eq(Rule::getSystemId, systemId);
+            } else {
+                // 如果没有指定系统，使用当前上下文的系统
+                String contextSystemId = TenantContext.getSystemId();
+                if (contextSystemId != null) {
+                    wrapper.eq(Rule::getSystemId, contextSystemId);
+                }
             }
 
             wrapper.orderByDesc(Rule::getCreateTime);
