@@ -270,7 +270,7 @@ private IndexSettings buildTemplateSettings() {
 ```java
 // 1. 支持中文分词的消息字段
 properties.put("message", Property.of(p -> p.text(t -> t
-    .analyzer("standard")  // 标准分析器
+    .analyzer("ik_max_word")  // ik分词器
     .fields("keyword", Property.of(kf -> kf.keyword(k -> k.ignoreAbove(256))))
 )));
 

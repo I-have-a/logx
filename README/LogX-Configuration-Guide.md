@@ -521,7 +521,7 @@ public void initBucket() throws Exception {
         "level": { "type": "keyword" },
         "message": {
           "type": "text",
-          "analyzer": "standard",
+          "analyzer": "ik_max_word",
           "fields": {
             "keyword": { "type": "keyword", "ignore_above": 256 }
           }

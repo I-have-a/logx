@@ -101,6 +101,7 @@ public class LogParser {
         normalized.put("spanId", getString(logMap, "spanId", "span_id"));
         normalized.put("tenantId", getString(logMap, "tenantId", "tenant_id"));
         normalized.put("systemId", getString(logMap, "systemId", "system_id"));
+        normalized.put("systemName", getString(logMap, "systemName", "system_name"));
         normalized.put("level", normalizeLevel(getString(logMap, "level")));
         normalized.put("logger", getString(logMap, "logger"));
         normalized.put("thread", getString(logMap, "thread"));

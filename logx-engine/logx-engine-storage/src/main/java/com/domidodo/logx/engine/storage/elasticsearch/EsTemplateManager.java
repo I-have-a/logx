@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -126,6 +127,7 @@ public class EsTemplateManager {
         properties.put("spanId", Property.of(p -> p.keyword(k -> k.ignoreAbove(256))));
         properties.put("tenantId", Property.of(p -> p.keyword(k -> k.ignoreAbove(128))));
         properties.put("systemId", Property.of(p -> p.keyword(k -> k.ignoreAbove(128))));
+        properties.put("systemName", Property.of(p -> p.keyword(k -> k.ignoreAbove(128))));
 
         // 2. 时间戳（关键字段）
         properties.put("timestamp", Property.of(p -> p.date(d -> d
@@ -146,7 +148,7 @@ public class EsTemplateManager {
 
         // 6. 日志内容（支持中文分词）
         properties.put("message", Property.of(p -> p.text(t -> t
-                .analyzer("standard")  // 使用standard分析器（如果安装了ik，可以改为ik_max_word）
+                .analyzer("ik_max_word")
                 .fields("keyword", Property.of(kf -> kf.keyword(k -> k.ignoreAbove(256))))
         )));
 

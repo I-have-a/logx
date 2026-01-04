@@ -4,8 +4,9 @@ package com.domidodo.gateway.http.controller;
 import com.domidodo.gateway.http.service.LogIngestService;
 import com.domidodo.logx.common.dto.LogDTO;
 import com.domidodo.logx.common.result.Result;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -16,10 +17,11 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1")
+@RequiredArgsConstructor
+@Tag(name = "日志接收", description = "日志接收接口")
 public class LogIngestController {
 
-    @Autowired
-    private LogIngestService ingestService;
+    private final LogIngestService ingestService;
 
     /**
      * 接收单条日志

@@ -259,6 +259,7 @@ public class EsIndexManager {
         properties.put("spanId", Map.of("type", "keyword"));
         properties.put("tenantId", Map.of("type", "keyword"));
         properties.put("systemId", Map.of("type", "keyword"));
+        properties.put("systemName", Map.of("type", "keyword"));
         properties.put("timestamp", Map.of("type", "date"));
         properties.put("level", Map.of("type", "keyword"));
         properties.put("logger", Map.of("type", "keyword"));
