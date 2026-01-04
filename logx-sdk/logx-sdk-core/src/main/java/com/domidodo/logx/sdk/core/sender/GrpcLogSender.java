@@ -63,6 +63,7 @@ public class GrpcLogSender implements LogSender {
             LogBatchRequest request = LogBatchRequest.newBuilder()
                     .setTenantId(config.getTenantId())
                     .setSystemId(config.getSystemId())
+                    .setSystemName(config.getSystemName())
                     .setApiKey(config.getApiKey())
                     .addLogs(buildLogEntry(entry))
                     .build();
@@ -100,6 +101,7 @@ public class GrpcLogSender implements LogSender {
             LogBatchRequest.Builder requestBuilder = LogBatchRequest.newBuilder()
                     .setTenantId(config.getTenantId())
                     .setSystemId(config.getSystemId())
+                    .setSystemName(config.getSystemName())
                     .setApiKey(config.getApiKey());
 
             // 添加所有日志

@@ -322,28 +322,10 @@ public class LogXClient {
         }
 
         /**
-         * 设置租户ID（兼容 Long 类型）
-         */
-        @Deprecated
-        public Builder tenantId(Long tenantId) {
-            config.setTenantId(String.valueOf(tenantId));
-            return this;
-        }
-
-        /**
          * 设置系统ID（使用 String 类型）
          */
         public Builder systemId(String systemId) {
             config.setSystemId(systemId);
-            return this;
-        }
-
-        /**
-         * 设置系统ID（兼容 Long 类型）
-         */
-        @Deprecated
-        public Builder systemId(Long systemId) {
-            config.setSystemId(String.valueOf(systemId));
             return this;
         }
 

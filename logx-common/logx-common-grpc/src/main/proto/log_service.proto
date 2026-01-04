@@ -27,6 +27,7 @@ message LogBatchRequest {
   string system_id = 2;           // 系统ID
   string api_key = 3;             // API密钥
   repeated LogEntry logs = 4;     // 日志列表
+  string system_name = 5;
 }
 
 /**
@@ -90,4 +91,5 @@ message LogEntry {
   // 扩展信息
   repeated string tags = 24;      // 标签列表
   google.protobuf.Struct extra = 25; // 扩展字段（JSON）
+  string system_name = 26;
 }

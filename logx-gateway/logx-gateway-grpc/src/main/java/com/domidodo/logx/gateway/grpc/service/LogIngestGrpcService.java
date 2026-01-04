@@ -188,6 +188,9 @@ public class LogIngestGrpcService extends LogServiceGrpc.LogServiceImplBase {
         if (!entry.getSystemId().isEmpty()) {
             map.put("systemId", entry.getSystemId());
         }
+        if (!entry.getSystemName().isEmpty()) {
+            map.put("systemName", entry.getSystemName());
+        }
 
         // ============ 时间戳处理 ============
         if (entry.getTimestamp() > 0) {
