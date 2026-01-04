@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 规则执行器（使用增强规则引擎）
+ * 规则执行器
  */
 @Slf4j
 @Component

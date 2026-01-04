@@ -5,6 +5,7 @@ import com.domidodo.logx.engine.detection.entity.Rule;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -48,16 +49,39 @@ public interface RuleMapper extends BaseMapper<Rule> {
     List<Rule> selectEnabledRulesByType(@Param("ruleType") String ruleType);
 
     /**
+     * 增加触发次数（原子操作）
+     */
+    @Update("""
+            UPDATE log_exception_rule
+            SET trigger_count = COALESCE(trigger_count, 0) + 1,
+                last_trigger_time = NOW()
+            WHERE id = #{ruleId}""")
+    int incrementTriggerCount(@Param("ruleId") Long ruleId);
+
+    /**
+     * 批量增加触发次数
+     */
+    @Update("""
+            UPDATE log_exception_rule
+            SET trigger_count = COALESCE(trigger_count, 0) + 1,
+                last_trigger_time = NOW()
+            WHERE id IN
+            <foreach collection="ruleIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>""")
+    int batchIncrementTriggerCount(@Param("ruleIds") List<Long> ruleIds);
+
+    /**
      * 查询各类型规则数量
      */
     @Select("""
             SELECT
                 rule_type,
                 COUNT(*) as rule_count,
-                SUM(trigger_count) as total_triggers
+                SUM(COALESCE(trigger_count, 0)) as total_triggers
             FROM log_exception_rule
             WHERE status = 1
-            GROUP BY rule_type;""")
+            GROUP BY rule_type""")
     List<Map<String, Object>> countAlertsByRuleType();
 
     /**
@@ -68,16 +92,17 @@ public interface RuleMapper extends BaseMapper<Rule> {
                    rule_type,
                    trigger_count,
                    last_trigger_time,
-                   alert_level
+                   alert_level,
+                   silence_period,
+                   silence_scope
             FROM log_exception_rule
             WHERE status = 1
               AND last_trigger_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-            ORDER BY last_trigger_time DESC;
-            """)
+            ORDER BY last_trigger_time DESC""")
     List<Map<String, Object>> getRecentTriggeredRules();
 
     /**
-     * 批量标记为已读
+     * 查询高频触发规则
      */
     @Select("""
             SELECT rule_name,
@@ -89,35 +114,49 @@ public interface RuleMapper extends BaseMapper<Rule> {
             WHERE status = 1
               AND trigger_count > 100
               AND create_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)
-            ORDER BY triggers_per_hour DESC;"""
-    )
+            ORDER BY triggers_per_hour DESC""")
     List<Map<String, Object>> getHighTriggeredRules();
 
     /**
      * 删除过期的规则快照
      */
-    @Select("DELETE FROM log_rule_state_snapshot\n" +
-            "WHERE expire_time < NOW();")
-    void deleteExpiredRuleSnapshots();
+    @Update("DELETE FROM log_rule_state_snapshot WHERE expire_time < NOW()")
+    int deleteExpiredRuleSnapshots();
 
     /**
      * 重置月度触发次数
      */
-    @Select("""
+    @Update("""
             UPDATE log_exception_rule
             SET trigger_count = 0,
                 last_trigger_time = NULL
-            WHERE MONTH(last_trigger_time) < MONTH(NOW());""")
-    void resetMonthlyTriggerCount();
+            WHERE MONTH(last_trigger_time) < MONTH(NOW())""")
+    int resetMonthlyTriggerCount();
 
     /**
      * 禁用长期未触发的规则（超过30天）
      */
-    @Select("""
+    @Update("""
             UPDATE log_exception_rule
             SET status = 0
             WHERE status = 1
               AND (last_trigger_time IS NULL OR last_trigger_time < DATE_SUB(NOW(), INTERVAL 30 DAY))
-              AND create_time < DATE_SUB(NOW(), INTERVAL 30 DAY);""")
-    void deleteInvalidRules();
+              AND create_time < DATE_SUB(NOW(), INTERVAL 30 DAY)""")
+    int disableInactiveRules();
+
+    /**
+     * 更新规则静默期配置
+     */
+    @Update("""
+            UPDATE log_exception_rule
+            SET silence_period = #{silencePeriod},
+                silence_scope = #{silenceScope},
+                allow_escalation = #{allowEscalation},
+                enable_aggregation = #{enableAggregation}
+            WHERE id = #{ruleId}""")
+    int updateSilenceConfig(@Param("ruleId") Long ruleId,
+                            @Param("silencePeriod") Integer silencePeriod,
+                            @Param("silenceScope") String silenceScope,
+                            @Param("allowEscalation") Boolean allowEscalation,
+                            @Param("enableAggregation") Boolean enableAggregation);
 }

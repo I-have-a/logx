@@ -5,6 +5,7 @@ import com.domidodo.logx.engine.storage.elasticsearch.EsIndexManager;
 import com.domidodo.logx.engine.storage.lifecycle.DataLifecycleManager;
 import com.domidodo.logx.engine.storage.lifecycle.HotColdStrategy;
 import com.domidodo.logx.engine.storage.minio.MinioStorageService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/storage")
 @RequiredArgsConstructor
+@Tag(name = "存储管理", description = "存储管理")
 public class StorageController {
 
     private final EsIndexManager esIndexManager;
