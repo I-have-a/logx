@@ -38,12 +38,17 @@ public class Rule implements Serializable {
     private String ruleName;
 
     /**
-     * 规则类型：RESPONSE_TIME/ERROR_RATE/CONTINUOUS_FAILURE/FREQUENT_OPERATION
+     * 规则类型：
+     * RESPONSE_TIME:超时
+     * ERROR_RATE:错误率（一旦出现 Level=ERROR 则触发）
+     * FIELD_COMPARE:字段比较
+     * BATCH_OPERATION:操作量
+     * CONTINUOUS_REQUEST:连续请求
      */
     private String ruleType;
 
     /**
-     * 监控对象（模块/接口/用户）
+     * 监控对象（模块/接口/用户/ip）
      */
     private String monitorTarget;
 
@@ -53,7 +58,7 @@ public class Rule implements Serializable {
     private String monitorMetric;
 
     /**
-     * 条件操作符：>、<、=、BETWEEN
+     * 条件操作符：">", "<", ">=", "<=", "=", "!=", "contains", "startsWith" （数字 | 字符串）
      */
     private String conditionOperator;
 

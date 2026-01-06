@@ -13,7 +13,7 @@
 ## 步骤 1: 克隆项目
 
 ```bash
-git clone https://github.com/your-repo/LogX.git
+git clone https://github.com/I-have-a/logx.git
 cd LogX
 ```
 

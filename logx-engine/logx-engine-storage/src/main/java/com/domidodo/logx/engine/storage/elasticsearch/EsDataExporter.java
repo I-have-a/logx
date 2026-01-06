@@ -37,6 +37,7 @@ public class EsDataExporter {
      */
     public String exportIndexToJson(String indexName) {
         log.info("开始导出索引数据: {}", indexName);
+
         long startTime = System.currentTimeMillis();
 
         // 先检查数据量

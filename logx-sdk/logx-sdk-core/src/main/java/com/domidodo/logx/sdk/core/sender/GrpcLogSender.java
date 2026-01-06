@@ -197,6 +197,7 @@ public class GrpcLogSender implements LogSender {
         // ============ 租户信息 ============
         builder.setTenantId(config.getTenantId());
         builder.setSystemId(config.getSystemId());
+        builder.setSystemName(config.getSystemName());
 
         // ============ 时间戳 ============
         if (entry.getTimestamp() != null) {

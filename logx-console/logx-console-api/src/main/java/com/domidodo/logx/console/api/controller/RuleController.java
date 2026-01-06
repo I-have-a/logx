@@ -36,9 +36,11 @@ public class RuleController {
     private static final Set<String> VALID_RULE_TYPES = Set.of(
             "RESPONSE_TIME",
             "ERROR_RATE",
-            "CONTINUOUS_FAILURE",
-            "FREQUENT_OPERATION"
+            "FIELD_COMPARE",
+            "BATCH_OPERATION",
+            "CONTINUOUS_REQUEST"
     );
+
 
     /**
      * 允许的告警级别

@@ -5,11 +5,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 增强规则引擎
  * 支持：字段值比较、批量操作监控、连续请求监控
+ * 支持多级字段路径访问，如：one.two[0].three
  */
 @Slf4j
 @Component
@@ -17,6 +21,11 @@ import java.util.Map;
 public class EnhancedRuleEngine {
 
     private final RuleStateManager stateManager;
+
+    /**
+     * 数组索引模式：匹配 fieldName[index] 格式
+     */
+    private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("^(.+?)\\[(\\d+)]$");
 
     /**
      * 评估规则是否触发
@@ -48,20 +57,23 @@ public class EnhancedRuleEngine {
 
     /**
      * 1. 字段值比较规则
-     * 支持对日志中任意字段进行比较
+     * 支持对日志中任意字段进行比较，包括多级嵌套字段
      * <p>
      * 配置示例：
-     * - monitorMetric: "responseTime" / "userId" / "level" 等任意字段
+     * - monitorMetric: "responseTime" / "user.profile.age" / "data[0].name" / "one.two[0].three"
      * - conditionOperator: ">", "<", ">=", "<=", "=", "!=", "contains", "startsWith"
      * - conditionValue: 具体的值
      */
     private boolean evaluateFieldCompare(Rule rule, Map<String, Object> logData) {
-        String fieldName = rule.getMonitorMetric();
+        String fieldPath = rule.getMonitorMetric();
         String operator = rule.getConditionOperator();
         String expectedValue = rule.getConditionValue();
 
-        Object actualValue = logData.get(fieldName);
+        // 使用多级字段路径解析获取值
+        Object actualValue = getNestedValue(logData, fieldPath);
         if (actualValue == null) {
+            // 字段不存在或值为null，跳过此规则
+            log.debug("字段路径不存在或值为null，跳过规则：字段路径={}", fieldPath);
             return false;
         }
 
@@ -78,10 +90,204 @@ public class EnhancedRuleEngine {
             return compareString(actualStr, expectedValue, operator);
 
         } catch (Exception e) {
-            log.error("字段比较错误：字段={}，运算符={}、值={}",
-                    fieldName, operator, expectedValue, e);
+            log.error("字段比较错误：字段路径={}，运算符={}、值={}",
+                    fieldPath, operator, expectedValue, e);
             return false;
         }
+    }
+
+    /**
+     * 获取多级嵌套字段的值
+     * 支持格式：
+     * - 简单字段：fieldName
+     * - 嵌套对象：one.two.three
+     * - 数组访问：data[0]
+     * - 混合路径：one.two[0].three.four[1].name
+     *
+     * @param data      数据对象（Map）
+     * @param fieldPath 字段路径
+     * @return 字段值，如果路径无效或字段不存在则返回 null
+     */
+    public Object getNestedValue(Map<String, Object> data, String fieldPath) {
+        if (data == null || fieldPath == null || fieldPath.isEmpty()) {
+            return null;
+        }
+
+        // 按点号分割路径
+        String[] pathParts = fieldPath.split("\\.");
+        Object current = data;
+
+        for (String part : pathParts) {
+            if (current == null) {
+                return null;
+            }
+
+            // 检查是否包含数组索引，如：items[0] 或 data[2]
+            Matcher matcher = ARRAY_INDEX_PATTERN.matcher(part);
+
+            if (matcher.matches()) {
+                // 带数组索引的字段
+                String fieldName = matcher.group(1);
+                int arrayIndex = Integer.parseInt(matcher.group(2));
+
+                // 先获取字段值
+                current = getFieldValue(current, fieldName);
+                if (current == null) {
+                    return null;
+                }
+
+                // 再获取数组元素
+                current = getArrayElement(current, arrayIndex);
+            } else {
+                // 普通字段
+                current = getFieldValue(current, part);
+            }
+        }
+
+        return current;
+    }
+
+    /**
+     * 从对象中获取字段值
+     *
+     * @param obj       对象（支持 Map）
+     * @param fieldName 字段名
+     * @return 字段值，不存在则返回 null
+     */
+    @SuppressWarnings("unchecked")
+    private Object getFieldValue(Object obj, String fieldName) {
+        if (obj == null || fieldName == null || fieldName.isEmpty()) {
+            return null;
+        }
+
+        if (obj instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) obj;
+            return map.get(fieldName);
+        }
+
+        // 如果需要支持 POJO 对象，可以在这里添加反射逻辑
+        log.debug("不支持的对象类型：{}，无法获取字段：{}", obj.getClass().getName(), fieldName);
+        return null;
+    }
+
+    /**
+     * 从数组/列表中获取指定索引的元素
+     *
+     * @param obj   数组或列表对象
+     * @param index 索引
+     * @return 元素值，索引越界或类型不支持则返回 null
+     */
+    private Object getArrayElement(Object obj, int index) {
+        if (obj == null || index < 0) {
+            return null;
+        }
+
+        try {
+            if (obj instanceof List<?> list) {
+                if (index >= list.size()) {
+                    log.debug("列表索引越界：size={}，index={}", list.size(), index);
+                    return null;
+                }
+                return list.get(index);
+            }
+
+            if (obj.getClass().isArray()) {
+                Object[] array = (Object[]) obj;
+                if (index >= array.length) {
+                    log.debug("数组索引越界：length={}，index={}", array.length, index);
+                    return null;
+                }
+                return array[index];
+            }
+
+            log.debug("不支持的类型用于数组访问：{}", obj.getClass().getName());
+            return null;
+
+        } catch (ClassCastException e) {
+            log.debug("数组类型转换失败：{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 检查字段路径是否存在
+     *
+     * @param data      数据对象
+     * @param fieldPath 字段路径
+     * @return true 如果路径存在（值可以为 null）
+     */
+    public boolean hasNestedField(Map<String, Object> data, String fieldPath) {
+        if (data == null || fieldPath == null || fieldPath.isEmpty()) {
+            return false;
+        }
+
+        String[] pathParts = fieldPath.split("\\.");
+        Object current = data;
+
+        for (int i = 0; i < pathParts.length; i++) {
+            if (current == null) {
+                return false;
+            }
+
+            String part = pathParts[i];
+            Matcher matcher = ARRAY_INDEX_PATTERN.matcher(part);
+
+            if (matcher.matches()) {
+                String fieldName = matcher.group(1);
+                int arrayIndex = Integer.parseInt(matcher.group(2));
+
+                // 检查字段是否存在
+                if (!containsField(current, fieldName)) {
+                    return false;
+                }
+
+                current = getFieldValue(current, fieldName);
+                if (current == null) {
+                    return i == pathParts.length - 1; // 最后一个节点值为null也算存在
+                }
+
+                // 检查数组索引是否有效
+                if (!isValidArrayIndex(current, arrayIndex)) {
+                    return false;
+                }
+
+                current = getArrayElement(current, arrayIndex);
+            } else {
+                if (!containsField(current, part)) {
+                    return false;
+                }
+                current = getFieldValue(current, part);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 检查对象是否包含指定字段
+     */
+    @SuppressWarnings("unchecked")
+    private boolean containsField(Object obj, String fieldName) {
+        if (obj instanceof Map) {
+            return ((Map<String, Object>) obj).containsKey(fieldName);
+        }
+        return false;
+    }
+
+    /**
+     * 检查数组索引是否有效
+     */
+    private boolean isValidArrayIndex(Object obj, int index) {
+        if (index < 0) {
+            return false;
+        }
+        if (obj instanceof List) {
+            return index < ((List<?>) obj).size();
+        }
+        if (obj.getClass().isArray()) {
+            return index < ((Object[]) obj).length;
+        }
+        return false;
     }
 
     /**
@@ -162,10 +368,16 @@ public class EnhancedRuleEngine {
     }
 
     /**
-     * 响应时间规则
+     * 响应时间规则（支持多级路径）
      */
     private boolean evaluateResponseTime(Rule rule, Map<String, Object> logData) {
-        Object responseTimeObj = logData.get("responseTime");
+        // 默认使用 responseTime，但也支持配置其他路径
+        String fieldPath = rule.getMonitorMetric();
+        if (fieldPath == null || fieldPath.isEmpty()) {
+            fieldPath = "responseTime";
+        }
+
+        Object responseTimeObj = getNestedValue(logData, fieldPath);
         if (responseTimeObj == null) {
             return false;
         }
@@ -224,7 +436,7 @@ public class EnhancedRuleEngine {
     }
 
     /**
-     * 构建批量操作的状态key
+     * 构建批量操作的状态key（支持多级路径）
      */
     private String buildBatchOperationKey(Rule rule, Map<String, Object> logData, String target) {
         StringBuilder key = new StringBuilder();
@@ -232,15 +444,36 @@ public class EnhancedRuleEngine {
         key.append(rule.getTenantId()).append(":");
         key.append(rule.getSystemId()).append(":");
 
-        // 根据target提取维度值
+        // 根据target提取维度值，支持多级路径
         if (target.startsWith("userId:")) {
-            key.append("user:").append(logData.get("userId"));
+            String fieldPath = target.substring(7);
+            Object value = fieldPath.contains(".") || fieldPath.contains("[")
+                    ? getNestedValue(logData, fieldPath)
+                    : logData.get("userId");
+            key.append("user:").append(value);
         } else if (target.startsWith("module:")) {
-            key.append("module:").append(logData.get("module"));
+            String fieldPath = target.substring(7);
+            Object value = fieldPath.contains(".") || fieldPath.contains("[")
+                    ? getNestedValue(logData, fieldPath)
+                    : logData.get("module");
+            key.append("module:").append(value);
         } else if (target.startsWith("ip:")) {
-            key.append("ip:").append(logData.get("ip"));
+            String fieldPath = target.substring(3);
+            Object value = fieldPath.contains(".") || fieldPath.contains("[")
+                    ? getNestedValue(logData, fieldPath)
+                    : logData.get("ip");
+            key.append("ip:").append(value);
         } else if (target.startsWith("operation:")) {
-            key.append("operation:").append(logData.get("operation"));
+            String fieldPath = target.substring(10);
+            Object value = fieldPath.contains(".") || fieldPath.contains("[")
+                    ? getNestedValue(logData, fieldPath)
+                    : logData.get("operation");
+            key.append("operation:").append(value);
+        } else if (target.startsWith("field:")) {
+            // 新增：支持任意字段路径，如 field:user.profile.id
+            String fieldPath = target.substring(6);
+            Object value = getNestedValue(logData, fieldPath);
+            key.append("field:").append(value);
         } else {
             // 默认使用完整target
             key.append(target);
@@ -268,6 +501,11 @@ public class EnhancedRuleEngine {
         } else if (target.startsWith("userId:")) {
             // 用户维度
             key.append("user:").append(logData.get("userId"));
+        } else if (target.startsWith("field:")) {
+            // 新增：支持任意字段路径
+            String fieldPath = target.substring(6);
+            Object value = getNestedValue(logData, fieldPath);
+            key.append("field:").append(value);
         } else {
             key.append(target);
         }
@@ -306,9 +544,17 @@ public class EnhancedRuleEngine {
         content.append("规则名称: ").append(rule.getRuleName()).append("\n");
         content.append("规则类型: ").append(getRuleTypeDesc(rule.getRuleType())).append("\n");
         content.append("监控对象: ").append(rule.getMonitorTarget()).append("\n");
+        content.append("监控字段: ").append(rule.getMonitorMetric()).append("\n");
         content.append("触发条件: ").append(rule.getMonitorMetric())
                 .append(" ").append(rule.getConditionOperator())
                 .append(" ").append(rule.getConditionValue()).append("\n");
+
+        // 显示实际匹配的值
+        String fieldPath = rule.getMonitorMetric();
+        Object actualValue = getNestedValue(logData, fieldPath);
+        if (actualValue != null) {
+            content.append("实际值: ").append(actualValue).append("\n");
+        }
 
         // 添加日志详情
         content.append("\n触发日志详情:\n");
