@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 /**
  * LogX 网关全局过滤器
- * 
+ * <p>
  * 核心功能：
  * 1. 生成/接收 TraceId（入口请求生成，已有则复用）
  * 2. 向下游服务传递追踪信息（通过 HTTP Header）
@@ -203,7 +203,7 @@ public class LogXGatewayFilter implements GlobalFilter, Ordered {
         }
 
         // 发送日志
-        logXClient.send(entry);
+        logXClient.log(entry);
 
         // 本地调试日志
         if (log.isDebugEnabled()) {
