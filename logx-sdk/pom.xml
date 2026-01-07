@@ -16,5 +16,6 @@
     <modules>
         <module>logx-sdk-core</module>
         <module>logx-sdk-spring-boot-starter</module>
+        <module>logx-sdk-gateway-starter</module>
     </modules>
 </project>

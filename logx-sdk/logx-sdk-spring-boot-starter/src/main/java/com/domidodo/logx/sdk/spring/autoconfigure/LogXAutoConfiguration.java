@@ -1,6 +1,7 @@
 package com.domidodo.logx.sdk.spring.autoconfigure;
 
 import com.domidodo.logx.sdk.spring.aspect.LogAspect;
+import com.domidodo.logx.sdk.spring.config.TraceIdFilterConfiguration;
 import com.domidodo.logx.sdk.spring.context.DefaultUserContextProvider;
 import com.domidodo.logx.sdk.spring.context.UserContextProvider;
 import com.domidodo.logx.sdk.spring.properties.LogXProperties;
@@ -11,18 +12,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /**
  * LogX 自动配置类
- * 支持用户上下文自定义
+ * <p>
+ * 适用于 Spring Boot Servlet 环境（业务服务）
+ * <p>
+ * 核心改进：
+ * 1. 导入 TraceIdFilterConfiguration（自动注册 TraceId 过滤器）
+ * 2. 支持用户上下文自定义
  */
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(LogXProperties.class)
 @ConditionalOnProperty(prefix = "logx", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@Import(TraceIdFilterConfiguration.class)  // ★ 导入 TraceId 过滤器配置
 public class LogXAutoConfiguration {
 
     private LogXClient logXClient;
@@ -76,9 +86,10 @@ public class LogXAutoConfiguration {
         // 初始化静态日志记录器
         LogXLogger.initClient(logXClient);
 
-        log.info("LogX SDK 初始化完成 [租户:{}, 系统:{}, 缓冲:{}(size={}, interval={})]",
+        log.info("LogX SDK 初始化完成 [租户:{}, 系统:{}, 追踪:{}, 缓冲:{}(size={}, interval={})]",
                 properties.getTenantId(),
                 properties.getSystemName(),
+                properties.getTrace().isEnabled(),
                 properties.getBuffer().isEnabled(),
                 properties.getBuffer().getSize(),
                 properties.getBuffer().getFlushInterval());
@@ -88,13 +99,12 @@ public class LogXAutoConfiguration {
 
     /**
      * 创建用户上下文提供器
-     * 优先使用自定义实现，否则使用默认实现
      */
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "logx.user-context", name = "enabled", havingValue = "true", matchIfMissing = true)
     public UserContextProvider userContextProvider(LogXProperties properties, BeanFactory beanFactory) {
-        // 如果配置了自定义Provider Bean名称，尝试获取
+        // 如果配置了自定义 Provider Bean 名称，尝试获取
         if (properties.getUserContext().getCustomProviderBeanName() != null
             && !properties.getUserContext().getCustomProviderBeanName().isEmpty()) {
             try {

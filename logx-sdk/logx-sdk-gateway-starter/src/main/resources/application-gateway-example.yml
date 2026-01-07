@@ -1,0 +1,75 @@
+# ============================================================
+# LogX Gateway 配置示例
+# 适用于 Spring Cloud Gateway（WebFlux 响应式）
+# ============================================================
+
+logx:
+  gateway:
+    # 是否启用
+    enabled: true
+
+    # ============ 租户信息（必填） ============
+    tenant-id: "tenant-001"
+    system-id: "domidodo-gateway"
+    system-name: "API网关"
+    api-key: "your-api-key-here"
+
+    # ============ 通信模式 ============
+    # 可选: http 或 grpc
+    mode: grpc
+
+    # ============ LogX 服务端配置 ============
+    server:
+      # HTTP 模式配置
+      url: http://logx-server:8080
+
+      # gRPC 模式配置
+      host: logx-server
+      port: 9090
+      batch-mode: stream  # stream 或 batch
+
+      # 超时配置
+      connect-timeout: 5000
+      read-timeout: 5000
+
+    # ============ 分布式追踪配置 ============
+    trace:
+      enabled: true
+      trace-id-header: X-Trace-Id
+      span-id-header: X-Span-Id
+      # 是否将用户信息传递到下游服务
+      propagate-user: true
+
+    # ============ 日志配置 ============
+    log:
+      # 是否记录请求体/响应体（注意性能影响）
+      log-request-body: false
+      log-response-body: false
+      max-request-body-length: 2048
+      max-response-body-length: 2048
+
+      # 是否记录请求头
+      log-headers: false
+      include-headers:
+        - Content-Type
+        - User-Agent
+        - Accept
+
+      # 排除的路径（不记录日志）
+      exclude-paths:
+        - /favicon.ico
+
+      # 排除的路径前缀
+      exclude-path-prefixes:
+        - /actuator
+        - /health
+        - /metrics
+
+      # 慢请求阈值（毫秒）
+      slow-threshold: 5000
+
+    # ============ 缓冲配置 ============
+    buffer:
+      enabled: true
+      size: 1000
+      flush-interval: 5s

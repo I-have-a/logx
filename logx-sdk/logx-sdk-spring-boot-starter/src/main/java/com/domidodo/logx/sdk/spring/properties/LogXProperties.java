@@ -11,7 +11,8 @@ import java.util.Map;
 
 /**
  * LogX 配置属性
- * 类型统一使用 String，与 gRPC Proto 保持一致
+ * <p>
+ * 适用于 Spring Boot Servlet 环境（业务服务）
  */
 @Data
 @ConfigurationProperties(prefix = "logx")
@@ -38,7 +39,7 @@ public class LogXProperties {
     private String systemName;
 
     /**
-     * API密钥（用于认证,由服务端生成后交由客户端）
+     * API密钥
      */
     private String apiKey;
 
@@ -48,9 +49,14 @@ public class LogXProperties {
     private String mode = "http";
 
     /**
-     * 网关配置
+     * 网关配置（LogX 服务端）
      */
     private Gateway gateway = new Gateway();
+
+    /**
+     * 分布式追踪配置（新增）
+     */
+    private Trace trace = new Trace();
 
     /**
      * 缓冲配置
@@ -103,6 +109,18 @@ public class LogXProperties {
          * 读取超时（毫秒）
          */
         private int readTimeout = 5000;
+    }
+
+    /**
+     * 分布式追踪配置（新增）
+     */
+    @Data
+    public static class Trace {
+        /**
+         * 是否启用分布式追踪
+         * 启用后会自动接收网关传递的 TraceId
+         */
+        private boolean enabled = true;
     }
 
     @Data
@@ -165,11 +183,21 @@ public class LogXProperties {
 
         /**
          * 用户信息获取来源，支持多个：header, session, principal, parameter
-         * 多个来源用逗号分隔，按顺序尝试
          */
         private List<String> source = Arrays.asList("header", "session", "principal");
 
-        // ============ 请求头配置 ============
+        // ============ 追踪 Header 配置 ============
+        /**
+         * TraceId 请求头名称
+         */
+        private String traceIdHeader = "X-Trace-Id";
+
+        /**
+         * SpanId 请求头名称
+         */
+        private String spanIdHeader = "X-Span-Id";
+
+        // ============ 用户信息 Header 配置 ============
         /**
          * 用户ID请求头名称
          */
@@ -209,7 +237,6 @@ public class LogXProperties {
 
         /**
          * 自定义用户上下文提供器Bean名称
-         * 如果配置了此项，将使用自定义实现
          */
         private String customProviderBeanName;
     }
@@ -226,28 +253,21 @@ public class LogXProperties {
 
         /**
          * 包名到模块名的映射
-         * 示例：
-         * logx.module.package-mapping.com.example.order = 订单模块
-         * logx.module.package-mapping.com.example.user = 用户模块
          */
         private Map<String, String> packageMapping = new HashMap<>();
 
         /**
-         * 类名到模块名的映射（全限定类名）
-         * 示例：
-         * logx.module.class-mapping.com.example.order.controller.OrderController = 订单管理
+         * 类名到模块名的映射
          */
         private Map<String, String> classMapping = new HashMap<>();
 
         /**
-         * 默认模块名（当无法确定模块时使用）
+         * 默认模块名
          */
         private String defaultModule = "default";
 
         /**
          * 是否使用简化的类名作为模块名
-         * true: OrderController -> order
-         * false: 使用包名提取
          */
         private boolean useSimpleClassName = false;
     }
