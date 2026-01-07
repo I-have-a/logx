@@ -5,6 +5,7 @@ import com.domidodo.logx.sdk.spring.properties.LogXProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import org.springframework.core.Ordered;
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(prefix = "logx.trace", name = "enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(LogXProperties.class)
 public class TraceIdFilterConfiguration {
 
     /**
