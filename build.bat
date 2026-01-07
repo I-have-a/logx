@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo    LogX SDK 构建脚本
+echo    LogX SDK 构建脚本 v2.0
 echo ========================================
 echo.
 
@@ -34,6 +34,9 @@ if %errorlevel% neq 0 (
 )
 cd %ROOT_DIR%
 echo [2/3] logx-common 安装完成 ✓
+echo        - logx-common-core
+echo        - logx-common-api
+echo        - logx-common-grpc
 echo.
 
 :: 步骤3: 安装 logx-sdk 模块
@@ -47,6 +50,9 @@ if %errorlevel% neq 0 (
 )
 cd %ROOT_DIR%
 echo [3/3] logx-sdk 安装完成 ✓
+echo        - logx-sdk-core
+echo        - logx-sdk-spring-boot-starter (Servlet)
+echo        - logx-sdk-gateway-starter (WebFlux)
 echo.
 
 :: 构建成功
@@ -57,11 +63,26 @@ echo 开始时间: %START_TIME%
 echo 结束时间: %time%
 echo.
 echo SDK 已安装到本地 Maven 仓库:
-echo   - logx-common-core
-echo   - logx-common-api
-echo   - logx-common-grpc
-echo   - logx-sdk-core
-echo   - logx-sdk-spring-boot-starter
+echo.
+echo   [logx-common]
+echo     - logx-common-core
+echo     - logx-common-api
+echo     - logx-common-grpc
+echo.
+echo   [logx-sdk]
+echo     - logx-sdk-core              (核心模块)
+echo     - logx-sdk-spring-boot-starter (业务服务 - Servlet)
+echo     - logx-sdk-gateway-starter     (微服务网关 - WebFlux)
+echo.
+echo ----------------------------------------
+echo 使用方式:
+echo.
+echo   业务服务 (如 realauth, order):
+echo     ^<artifactId^>logx-sdk-spring-boot-starter^</artifactId^>
+echo.
+echo   微服务网关 (Spring Cloud Gateway):
+echo     ^<artifactId^>logx-sdk-gateway-starter^</artifactId^>
+echo ----------------------------------------
 echo.
 goto :end
 
