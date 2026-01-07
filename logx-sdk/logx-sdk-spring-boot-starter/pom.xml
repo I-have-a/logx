@@ -32,12 +32,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.domidodo</groupId>
-            <artifactId>logx-common-grpc</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- AOP -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
